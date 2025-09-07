@@ -6,25 +6,10 @@ public class Player : MonoBehaviour
     [SerializeField] private float moveSpeed;
     private float rotationSpeed = 10f;
     private bool isMoving;
+    [SerializeField] private InputSystem inputSystem;
     private void Update()
     {
-        Vector2 movePosition = new Vector2(0, 0);
-        if (Input.GetKey(KeyCode.W))
-        {
-            movePosition.y += 1;
-        }
-        if (Input.GetKey(KeyCode.A))
-        {
-            movePosition.x -= 1;
-        }
-        if (Input.GetKey(KeyCode.S))
-        {
-            movePosition.y -= 1;
-        }
-        if (Input.GetKey(KeyCode.D))
-        {
-            movePosition.x += 1;
-        }
+        Vector2 movePosition = inputSystem.GetMovementInput();
         isMoving = movePosition != Vector2.zero;
         movePosition = movePosition.normalized;
         Vector3 realMovePosition = new Vector3(movePosition.x, 0, movePosition.y);
