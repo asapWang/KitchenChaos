@@ -4,21 +4,36 @@ using UnityEngine;
 public class Player : MonoBehaviour
 {
     [SerializeField] private float moveSpeed;
-    private float rotationSpeed = 10f;
-    private bool isMoving;
     [SerializeField] private InputSystem inputSystem;
-    private bool canMove;
+    [SerializeField] private LayerMask counterLayerMask;
+    private bool isMoving;
+    private Vector3 lastMoveDir;
+    
+   
     private void Update()
+    {
+        HandleMovement();
+        HandleInteractions();
+    }
+
+
+    public bool IsMoving()
+    {
+        return isMoving;
+    }
+
+    private void HandleMovement()
     {
         //获取输入并旋转（不论能不能移动）
         Vector2 movePosition = inputSystem.GetMovementInput();
         Vector3 realMovePosition = new Vector3(movePosition.x, 0, movePosition.y);
+        float rotationSpeed = 10f;
         transform.forward = Vector3.Slerp(transform.forward, realMovePosition, Time.deltaTime * rotationSpeed);
         //碰撞检测
         float playerHeight = 2f;
         float playerRadius = 0.7f;
         float moveDistance = moveSpeed * Time.deltaTime;
-        canMove = !Physics.CapsuleCast(transform.position, transform.position + Vector3.up * playerHeight, playerRadius, realMovePosition, moveDistance);
+        bool canMove= !Physics.CapsuleCast(transform.position, transform.position + Vector3.up * playerHeight, playerRadius, realMovePosition, moveDistance);
         if (!canMove)
         {
             canMove = !Physics.CapsuleCast(transform.position, transform.position + Vector3.up * playerHeight, playerRadius, new Vector3(realMovePosition.x, 0, 0), moveDistance);
@@ -39,14 +54,28 @@ public class Player : MonoBehaviour
                 }
             }
         }
-        
+
         //是否移动
         isMoving = movePosition != Vector2.zero;
         transform.position += realMovePosition * moveDistance;
-        
     }
-    public bool IsMoving()
+
+    private void HandleInteractions()
     {
-        return isMoving;
+        Vector2 movePosition = inputSystem.GetMovementInput();
+        Vector3 realMovePosition = new Vector3(movePosition.x, 0, movePosition.y);
+        if (realMovePosition != Vector3.zero)
+        {
+            lastMoveDir = realMovePosition;
+        }
+        float rayLength = 2f;
+
+        if (Physics.Raycast(transform.position, lastMoveDir, out RaycastHit raycastHit, rayLength, counterLayerMask))
+        {
+            if (raycastHit.transform.TryGetComponent(out ClearCounter clearCounter))
+            {
+                clearCounter.Interact();
+            }
+        }
     }
 }

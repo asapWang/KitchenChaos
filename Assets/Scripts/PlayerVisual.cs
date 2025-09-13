@@ -3,6 +3,7 @@ using UnityEngine;
 
 public class PlayerVisual : MonoBehaviour
 {
+    private const string IS_MOVING = "IsMoving";
     private Animator animator;
     [SerializeField] private Player player;
     private void Awake()
@@ -12,6 +13,6 @@ public class PlayerVisual : MonoBehaviour
 
     void Update()
     {
-        animator.SetBool("IsMoving", player.IsMoving());
+        animator.SetBool(IS_MOVING, player.IsMoving());
     }
 }
