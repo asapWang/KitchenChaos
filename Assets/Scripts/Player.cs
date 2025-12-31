@@ -1,13 +1,53 @@
 using UnityEngine;
+using System;
 
-
-public class Player : MonoBehaviour
+public class Player : MonoBehaviour, IGetKitchenObject
 {
     [SerializeField] private float moveSpeed;
     [SerializeField] private InputSystem inputSystem;
     [SerializeField] private LayerMask counterLayerMask;
+    [SerializeField] private Transform playerHandPosition;
+    //isMoving只用于动画控制
     private bool isMoving;
     private Vector3 lastMoveDir;
+    private BaseCounter selectedCounter;
+    //突出SelectedCounterVisual事件
+    public event EventHandler<SelectedCounterEventArgs> OnSelectedCounter;
+    public class SelectedCounterEventArgs : EventArgs
+    {
+        public BaseCounter selectedCounter;
+    }
+    public static Player Instance { get; private set; }
+    private KitchenObject kitchenObject;
+    
+    private void Awake()
+    {
+        if (Instance != null)
+        {
+            Debug.LogError("There is more than one Player instance!");
+        }
+        Instance = this;
+    }
+    private void Start()
+    {
+        inputSystem.OnInteractAction += InputSystem_OnInteractAction;
+        inputSystem.OnInteractAlternativeAction += InputSystem_OnInteractAlternativeAction;
+    }
+
+    private void InputSystem_OnInteractAction(object sender, System.EventArgs e)
+    {
+        if (selectedCounter != null)
+        {
+            selectedCounter.Interact(this);
+        }
+    }
+    private void InputSystem_OnInteractAlternativeAction(object sender, System.EventArgs e)
+    {
+        if (selectedCounter != null)
+        {
+            selectedCounter.InteractAlternative();
+        }
+    }
     
    
     private void Update()
@@ -72,10 +112,52 @@ public class Player : MonoBehaviour
 
         if (Physics.Raycast(transform.position, lastMoveDir, out RaycastHit raycastHit, rayLength, counterLayerMask))
         {
-            if (raycastHit.transform.TryGetComponent(out ClearCounter clearCounter))
+            if (raycastHit.transform.TryGetComponent(out BaseCounter baseCounter))
             {
-                clearCounter.Interact();
+                SetSelectedCounter(baseCounter);
+            }
+            else
+            {
+                SetSelectedCounter(null);
             }
         }
+        else
+        {
+            SetSelectedCounter(null);
+        }
+    }
+
+    private void SetSelectedCounter(BaseCounter baseCounter)
+    {
+        selectedCounter = baseCounter;
+        OnSelectedCounter?.Invoke(this, new SelectedCounterEventArgs { selectedCounter = selectedCounter });
+    }
+
+
+
+
+    //以下为接口
+    public Transform GetKitchenObjectPosition()
+    {
+        return playerHandPosition;
+    }
+
+    public void ClearKitchenObject()
+    {
+        kitchenObject = null;
+    }
+
+    public void SetKitchenObject(KitchenObject kitchenObject)
+    {
+        this.kitchenObject = kitchenObject;
+    }
+
+    public bool HasKitchenObject()
+    {
+        return kitchenObject != null;
+    }
+    public KitchenObject GetKitchenObject()
+    {
+        return kitchenObject;
     }
 }
