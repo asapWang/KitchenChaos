@@ -44,6 +44,10 @@ public class CuttingCounter : BaseCounter, IHasProgress
             else
             {
                 //Player没有物体
+                OnProgressBarUIChanged?.Invoke(this, new IHasProgress.OnProgressBarUIChangedEventArgs
+                {
+                     progressNormalized = 0f
+                });
                 GetKitchenObject().SetOwner(player);
             }
         }
