@@ -102,7 +102,20 @@ public class StoveCounter : BaseCounter,IHasProgress
             if (player.HasKitchenObject())
             {
                 //Player有物体
-                //啥都不做
+                if(player.GetKitchenObject().TryGetPlate(out PlateKitchenObject plateKitchenObject))
+                {
+                    //Player手上是盘子
+                    if (plateKitchenObject.TryAddIngredient(GetKitchenObject().GetKitchenObjectSO()))
+                    {
+                        GetKitchenObject().DestroySelf();
+                        state = State.Idle;
+                        OnStoveVisualChange?.Invoke(this, new OnStoveVisualChangeEventArgs { state = state } );
+                        OnProgressBarUIChanged?.Invoke(this, new IHasProgress.OnProgressBarUIChangedEventArgs
+                        {
+                            progressNormalized = 0f
+                        });
+                    }
+                }
             }
             else
             {

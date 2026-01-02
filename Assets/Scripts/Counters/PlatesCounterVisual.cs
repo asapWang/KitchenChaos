@@ -10,10 +10,13 @@ public class PlatesCounterVisual : MonoBehaviour
     private List<GameObject> plateVisualPrefabList;
     private int plateSpawnCount;
     private int plateVisualMaxCount = 4;
+    private void Awake()
+    {
+        plateVisualPrefabList = new List<GameObject>();
+    }
     private void Start()
     {
         plateSpawnCount = 0;
-        plateVisualPrefabList = new List<GameObject>();
         platesCounter.OnPlateSpawned += PlatesCounter_OnPlateSpawned;
         platesCounter.OnPlateRemoved += PlatesCounter_OnPlateRemoved;
     }
