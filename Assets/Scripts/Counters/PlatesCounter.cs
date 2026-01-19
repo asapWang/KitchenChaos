@@ -19,7 +19,7 @@ public class PlatesCounter : BaseCounter
             OnPlateSpawned?.Invoke(this, EventArgs.Empty);
         }
     }
-        public override void Interact(Player player)
+    public override void Interact(Player player)
     {
         if (!player.HasKitchenObject())
         {
