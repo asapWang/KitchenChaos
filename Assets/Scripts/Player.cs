@@ -11,14 +11,16 @@ public class Player : MonoBehaviour, IGetKitchenObject
     private bool isMoving;
     private Vector3 lastMoveDir;
     private BaseCounter selectedCounter;
+    private KitchenObject kitchenObject;
     //突出SelectedCounterVisual事件
     public event EventHandler<SelectedCounterEventArgs> OnSelectedCounter;
     public class SelectedCounterEventArgs : EventArgs
     {
         public BaseCounter selectedCounter;
     }
+    //拾取物品音效事件
+    public event EventHandler OnPickup;
     public static Player Instance { get; private set; }
-    private KitchenObject kitchenObject;
     
     private void Awake()
     {
@@ -150,6 +152,10 @@ public class Player : MonoBehaviour, IGetKitchenObject
     public void SetKitchenObject(KitchenObject kitchenObject)
     {
         this.kitchenObject = kitchenObject;
+        if (kitchenObject != null)
+        {
+            OnPickup?.Invoke(this, EventArgs.Empty);
+        }
     }
 
     public bool HasKitchenObject()

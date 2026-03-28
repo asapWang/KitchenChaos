@@ -7,6 +7,8 @@ public class CuttingCounter : BaseCounter, IHasProgress
     [SerializeField] private CuttingRecipeSO[] cuttingRecipeSOArray;
     public event EventHandler OnCutting;
     public event EventHandler<IHasProgress.OnProgressBarUIChangedEventArgs> OnProgressBarUIChanged;
+    //音效事件
+    public static event EventHandler OnAnyCutting;
 
     private int cuttingProgress;
     public override void Interact(Player player)
@@ -70,6 +72,7 @@ public class CuttingCounter : BaseCounter, IHasProgress
                  progressNormalized = (float)cuttingProgress / GetCuttingRecipeSO(GetKitchenObject().GetKitchenObjectSO()).cuttingProgressMax
             });
             OnCutting?.Invoke(this, EventArgs.Empty);
+            OnAnyCutting?.Invoke(this, EventArgs.Empty);
             if(cuttingProgress>= GetCuttingRecipeSO(GetKitchenObject().GetKitchenObjectSO()).cuttingProgressMax)
             {
                 KitchenObjectSO output= GetOutputCuttingRecipeSO(GetKitchenObject().GetKitchenObjectSO());

@@ -1,9 +1,17 @@
 using UnityEngine;
 using System.Collections.Generic;
+using System;
 
 public class DeliveryManager : MonoBehaviour
 {
     [SerializeField] private RecipeSOList recipeSOList;
+    //事件：生成订单和完成订单时都要更新订单UI
+    public event EventHandler OnRecipeSpawned;
+    public event EventHandler OnRecipeCompleted;
+    //事件:当订单被送达时，播放送达成功的音效；当订单错误时，播放送达失败的音效
+    public event EventHandler OnDeliverFail;
+    public event EventHandler OnDeliverSuccess;
+
     public static DeliveryManager Instance { get; private set; }
     private List<RecipeSO> waitingRecipeSOList;
     private float waitingRecipeTimer;
@@ -26,7 +34,8 @@ public class DeliveryManager : MonoBehaviour
             {
                 //最多只能有4个订单
                 waitingRecipeCount++;
-                waitingRecipeSOList.Add(recipeSOList.recipeSOs[Random.Range(0, recipeSOList.recipeSOs.Length)]);
+                waitingRecipeSOList.Add(recipeSOList.recipeSOs[UnityEngine.Random.Range(0, recipeSOList.recipeSOs.Length)]);
+                OnRecipeSpawned?.Invoke(this, EventArgs.Empty);
                 Debug.Log(waitingRecipeSOList[waitingRecipeCount - 1].recipeName);
             }
         }
@@ -59,11 +68,20 @@ public class DeliveryManager : MonoBehaviour
                     Debug.Log("Recipe delivered");
                     waitingRecipeSOList.RemoveAt(i);
                     waitingRecipeCount--;
+                    OnRecipeCompleted?.Invoke(this, EventArgs.Empty);
+                    OnDeliverSuccess?.Invoke(this, EventArgs.Empty);
                     return;
                 }
             }   
         }
         //汉堡匹配失败
+        OnDeliverFail?.Invoke(this, EventArgs.Empty);
         Debug.Log("Recipe not delivered");
+    }
+
+    //获取当前等待订单的SO列表，方便根据这个列表来生成订单UI
+    public List<RecipeSO> GetWaitingRecipeSOList()
+    {
+        return waitingRecipeSOList;
     }
 }
