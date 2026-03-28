@@ -20,9 +20,11 @@ public class DeliveryManager : MonoBehaviour
         waitingRecipeTimer += Time.deltaTime;
         if (waitingRecipeTimer >= waitingRecipeTimerMax)
         {
+            //每隔4秒生成一个新的订单
             waitingRecipeTimer = 0f;
             if (waitingRecipeCount < waitingRecipeCountMax)
             {
+                //最多只能有4个订单
                 waitingRecipeCount++;
                 waitingRecipeSOList.Add(recipeSOList.recipeSOs[Random.Range(0, recipeSOList.recipeSOs.Length)]);
                 Debug.Log(waitingRecipeSOList[waitingRecipeCount - 1].recipeName);
@@ -32,20 +34,27 @@ public class DeliveryManager : MonoBehaviour
     public void DeliverRecipe(PlateKitchenObject plateKitchenObject)
     {
         for(int i = 0; i < waitingRecipeSOList.Count; i++){
+            //先判断盘子里的料理数量和订单[i]里的料理数量是否相等，如果不相等就直接去匹配下一个订单[i+1]，这样也能避免订单[i]真包含盘子里料理的情况
             if(waitingRecipeSOList[i].kitchenObjectSOs.Length == plateKitchenObject.GetAddedKitchenObjectSOs().Count){
+                //大致思路：盘子里的每个料理都去找订单[i]里的每个料理，有不匹配的就将isContentCorrect设为false
                 bool isContentCorrect = true;
                 foreach(KitchenObjectSO kitchenObjectSO in plateKitchenObject.GetAddedKitchenObjectSOs()){
+                    //isIngredientCorrect用来判断盘子里的每个料理是否能与订单[i]里的料理匹配
                     bool isIngredientCorrect = false;
                     foreach(KitchenObjectSO recipeKitchenObjectSO in waitingRecipeSOList[i].kitchenObjectSOs){
                         if(kitchenObjectSO == recipeKitchenObjectSO){
+                            //匹配成功了就直接跳出循环，去匹配盘子里的下一个料理
                             isIngredientCorrect = true;
                             break;
                         }
                     }
+                    //只要有一个料理没有匹配成功，就说明不符合这个订单[i]，isContentCorrect就直接等于false
                     if(!isIngredientCorrect){
                         isContentCorrect = false;
+                        break;
                     }
                 }
+                //每个料理匹配结束后，如果isContentCorrect还是true，说明汉堡匹配成功，跳出函数
                 if(isContentCorrect){
                     Debug.Log("Recipe delivered");
                     waitingRecipeSOList.RemoveAt(i);
@@ -54,5 +63,7 @@ public class DeliveryManager : MonoBehaviour
                 }
             }   
         }
+        //汉堡匹配失败
+        Debug.Log("Recipe not delivered");
     }
 }
