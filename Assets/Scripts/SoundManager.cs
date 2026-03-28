@@ -5,7 +5,7 @@ using UnityEngine;
 public class SoundManager : MonoBehaviour
 {
     [SerializeField] private SoundRefSO soundRefSO;
-    public static SoundManager Instance;
+    public static SoundManager Instance { get; private set; }
     private void Awake()
     {
         Instance = this;
