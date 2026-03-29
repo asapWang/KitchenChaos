@@ -18,6 +18,8 @@ public class DeliveryManager : MonoBehaviour
     private float waitingRecipeTimerMax = 4f;
     private int waitingRecipeCount;
     private int waitingRecipeCountMax = 4;
+    //成功送达订单的数量
+    private int amount;
     private void Awake()
     {
         Instance = this;
@@ -66,6 +68,7 @@ public class DeliveryManager : MonoBehaviour
                 //每个料理匹配结束后，如果isContentCorrect还是true，说明汉堡匹配成功，跳出函数
                 if(isContentCorrect){
                     Debug.Log("Recipe delivered");
+                    amount++;
                     waitingRecipeSOList.RemoveAt(i);
                     waitingRecipeCount--;
                     OnRecipeCompleted?.Invoke(this, EventArgs.Empty);
@@ -83,5 +86,10 @@ public class DeliveryManager : MonoBehaviour
     public List<RecipeSO> GetWaitingRecipeSOList()
     {
         return waitingRecipeSOList;
+    }
+    //获取成功送达订单的数量
+    public int GetAmount()
+    {
+        return amount;
     }
 }

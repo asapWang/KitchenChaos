@@ -39,7 +39,7 @@ public class Player : MonoBehaviour, IGetKitchenObject
     private void InputSystem_OnInteractAction(object sender, System.EventArgs e)
     {
         //游戏状态不是Playing，不能交互
-        if (!GameManager.instance.IsPlaying())
+        if (!GameManager.Instance.IsPlaying())
         {
             return;
         }
@@ -50,7 +50,7 @@ public class Player : MonoBehaviour, IGetKitchenObject
     }
     private void InputSystem_OnInteractAlternativeAction(object sender, System.EventArgs e)
     {
-        if (!GameManager.instance.IsPlaying())
+        if (!GameManager.Instance.IsPlaying())
         {
             return;
         }

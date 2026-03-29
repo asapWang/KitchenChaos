@@ -3,7 +3,7 @@ using UnityEngine;
 
 public class GameManager : MonoBehaviour
 {
-    public static GameManager instance { get; private set; }
+    public static GameManager Instance { get; private set; }
     //游戏状态改变事件
     public event EventHandler OnStateChanged;
     //游戏状态枚举
@@ -18,10 +18,11 @@ public class GameManager : MonoBehaviour
     //状态时间变量
     private float waitingTime = 1f;
     private float countingDownTime = 3f;
+    private float playingTimeMax = 10f;
     private float playingTime = 10f;
     private void Awake()
     {
-        instance = this;
+        Instance = this;
         state = State.waiting;
     }
     private void Update()
@@ -67,9 +68,20 @@ public class GameManager : MonoBehaviour
     {
         return state == State.countingDown;
     }
+    //判断游戏是否Over
+    public bool IsOver()
+    {
+        return state == State.over;
+    }
     //获取countingDownTime
     public float GetCountingDownTime()
     {
         return countingDownTime;
     }
+    //获取playingTimeNormalized
+    public float GetPlayingTimeNormalized()
+    {
+        return 1 - (playingTime / playingTimeMax);
+    }
+
 }
