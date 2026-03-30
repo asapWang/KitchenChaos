@@ -9,8 +9,12 @@ public class CuttingCounter : BaseCounter, IHasProgress
     public event EventHandler<IHasProgress.OnProgressBarUIChangedEventArgs> OnProgressBarUIChanged;
     //音效事件
     public static event EventHandler OnAnyCutting;
-
     private int cuttingProgress;
+    //清空OnAnyCutting事件
+    new public static void ResetStaticData()
+    {
+        OnAnyCutting = null;
+    }
     public override void Interact(Player player)
     {
         if (!HasKitchenObject())

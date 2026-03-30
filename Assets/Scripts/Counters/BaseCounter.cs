@@ -6,6 +6,11 @@ public class BaseCounter : MonoBehaviour,IGetKitchenObject
     private KitchenObject kitchenObject;
     //音效事件
     public static event EventHandler OnAnyObjectPlacedHere;
+    //清空OnAnyObjectPlacedHere事件
+    public static void ResetStaticData()
+    {
+        OnAnyObjectPlacedHere = null;
+    }
     public virtual void Interact(Player player)
     {
         Debug.Log("BaseCounter Interact");

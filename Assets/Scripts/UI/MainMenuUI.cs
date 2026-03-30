@@ -18,6 +18,8 @@ public class MainMenuUI : MonoBehaviour
             //退出游戏
             Application.Quit();
         });
+        //设置时间缩放为1，确保游戏正常运行
+        Time.timeScale = 1;
     }
 
 }

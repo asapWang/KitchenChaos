@@ -4,7 +4,6 @@ using System;
 public class Player : MonoBehaviour, IGetKitchenObject
 {
     [SerializeField] private float moveSpeed;
-    [SerializeField] private InputSystem inputSystem;
     [SerializeField] private LayerMask counterLayerMask;
     [SerializeField] private Transform playerHandPosition;
     //isMoving只用于动画控制
@@ -32,8 +31,8 @@ public class Player : MonoBehaviour, IGetKitchenObject
     }
     private void Start()
     {
-        inputSystem.OnInteractAction += InputSystem_OnInteractAction;
-        inputSystem.OnInteractAlternativeAction += InputSystem_OnInteractAlternativeAction;
+        InputSystem.Instance.OnInteractAction += InputSystem_OnInteractAction;
+        InputSystem.Instance.OnInteractAlternativeAction += InputSystem_OnInteractAlternativeAction;
     }
 
     private void InputSystem_OnInteractAction(object sender, System.EventArgs e)
@@ -76,7 +75,7 @@ public class Player : MonoBehaviour, IGetKitchenObject
     private void HandleMovement()
     {
         //获取输入并旋转（不论能不能移动）
-        Vector2 movePosition = inputSystem.GetMovementInput();
+        Vector2 movePosition = InputSystem.Instance.GetMovementInput();
         Vector3 realMovePosition = new Vector3(movePosition.x, 0, movePosition.y);
         float rotationSpeed = 10f;
         transform.forward = Vector3.Slerp(transform.forward, realMovePosition, Time.deltaTime * rotationSpeed);
@@ -113,7 +112,7 @@ public class Player : MonoBehaviour, IGetKitchenObject
 
     private void HandleInteractions()
     {
-        Vector2 movePosition = inputSystem.GetMovementInput();
+        Vector2 movePosition = InputSystem.Instance.GetMovementInput();
         Vector3 realMovePosition = new Vector3(movePosition.x, 0, movePosition.y);
         if (realMovePosition != Vector3.zero)
         {
