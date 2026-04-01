@@ -1,10 +1,12 @@
 using System.Collections.Generic;
 using System.Xml.Serialization;
 using UnityEngine;
-
+using UnityEngine.Audio;
 public class SoundManager : MonoBehaviour
 {
     [SerializeField] private SoundRefSO soundRefSO;
+    //音频输出组
+    [SerializeField] private AudioMixerGroup audioMixerGroup;
     public static SoundManager Instance { get; private set; }
     private void Awake()
     {
@@ -63,7 +65,13 @@ public class SoundManager : MonoBehaviour
 
     private void PlaySound(AudioClip audioClip,Vector3 position, float volume = 1f)
     {
-        AudioSource.PlayClipAtPoint(audioClip, position, volume);
+        //短暂创建空物体，并添加AudioSource组件，关联音频组，播放音效，最后销毁物体
+        GameObject audioObject = new GameObject("AudioSource");
+        audioObject.transform.position = position;
+        AudioSource audioSource = audioObject.AddComponent<AudioSource>();
+        audioSource.outputAudioMixerGroup = audioMixerGroup;
+        audioSource.PlayOneShot(audioClip, volume);
+        Destroy(audioObject, audioClip.length);
     }
     //专门为播放步音效而创建的方法，PlayerSound脚本里就不用再传入音效了
     public void PlayFootStepSound(Vector3 position, float volume = 1f)
