@@ -26,11 +26,21 @@ public class OptionsUI : MonoBehaviour
     [SerializeField] private TextMeshProUGUI interactBindingText;
     [SerializeField] private TextMeshProUGUI interactAltBindingText;
     [SerializeField] private TextMeshProUGUI pauseBindingText;
+    //摇杆按键相关
+    [SerializeField] private Button pausePadButton;
+    [SerializeField] private Button interactPadButton;
+    [SerializeField] private Button interactAltPadButton;
+    [SerializeField] private TextMeshProUGUI pausePadBindingText;
+    [SerializeField] private TextMeshProUGUI interactPadBindingText;
+    [SerializeField] private TextMeshProUGUI interactAltPadBindingText;
+
     [SerializeField] private Button closeButton;
     //绑定按键提示UI
     [SerializeField] private Transform pressToRebindKeyTransform;
     //引用audio mixer
     [SerializeField] private AudioMixer audioMixer;
+    //新事件，在此面板show时=暂停面板传来的事件，并在hide时调用
+    private Action onCloseButtonAction;
     public static OptionsUI Instance { get; private set; }
     private void Awake()
     {
@@ -47,6 +57,9 @@ public class OptionsUI : MonoBehaviour
         interactButton.onClick.AddListener(() => PressRebindButton(InputSystem.Binding.Interact));
         interactAltButton.onClick.AddListener(() => PressRebindButton(InputSystem.Binding.Interact_Alternate));
         pauseButton.onClick.AddListener(() => PressRebindButton(InputSystem.Binding.Pause));
+        interactPadButton.onClick.AddListener(() => PressRebindButton(InputSystem.Binding.Gamepad_Interact));
+        interactAltPadButton.onClick.AddListener(() => PressRebindButton(InputSystem.Binding.Gamepad_Interact_Alternate));
+        pausePadButton.onClick.AddListener(() => PressRebindButton(InputSystem.Binding.Gamepad_Pause));
     }
     public void Start()
     {
@@ -103,6 +116,9 @@ public class OptionsUI : MonoBehaviour
         interactBindingText.text = InputSystem.Instance.GetBindingText(InputSystem.Binding.Interact);
         interactAltBindingText.text = InputSystem.Instance.GetBindingText(InputSystem.Binding.Interact_Alternate);
         pauseBindingText.text = InputSystem.Instance.GetBindingText(InputSystem.Binding.Pause);
+        interactPadBindingText.text = InputSystem.Instance.GetBindingText(InputSystem.Binding.Gamepad_Interact);
+        interactAltPadBindingText.text = InputSystem.Instance.GetBindingText(InputSystem.Binding.Gamepad_Interact_Alternate);
+        pausePadBindingText.text = InputSystem.Instance.GetBindingText(InputSystem.Binding.Gamepad_Pause);
     }
     //按键绑定按钮的点击事件
     private void PressRebindButton(InputSystem.Binding binding)
@@ -119,9 +135,14 @@ public class OptionsUI : MonoBehaviour
     public void Hide()
     {
         gameObject.SetActive(false);
+        onCloseButtonAction?.Invoke();
     }
-    public void Show()
+    //重载show方法，接收一个参数：当此面板关闭时要调用的事件（Action）
+    public void Show(Action onCloseButtonAction)
     {
+        this.onCloseButtonAction = onCloseButtonAction;
         gameObject.SetActive(true);
+        //高亮一个交互ui，方便玩家手柄和键盘操作
+        musicVolumeSlider.Select();
     }
 }

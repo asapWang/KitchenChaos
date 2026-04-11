@@ -169,5 +169,10 @@ public class StoveCounter : BaseCounter,IHasProgress
         }
         return null;
     }
+    //获取是否处于已烹饪状态
+    public bool IsFried()
+    {
+        return state == State.Fried;
+    }
 
 }

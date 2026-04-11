@@ -13,7 +13,8 @@ public class PlatesCounter : BaseCounter
     private void Update()
     {
         spawnPlateTimer += Time.deltaTime;
-        if (spawnPlateTimer >= spawnPlateTimerMax)
+        //加个条件，只有在游戏状态是playing的时候才生成盘子
+        if (spawnPlateTimer >= spawnPlateTimerMax && GameManager.Instance.IsPlaying())
         {
             spawnPlateTimer = 0f;
             OnPlateSpawned?.Invoke(this, EventArgs.Empty);

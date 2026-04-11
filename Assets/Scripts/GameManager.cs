@@ -22,10 +22,9 @@ public class GameManager : MonoBehaviour
     //暂停游戏
     private bool isPaused = false;
     //状态时间变量
-    private float waitingTime = 1f;
     private float countingDownTime = 3f;
-    private float playingTimeMax = 10f;
-    private float playingTime = 10f;
+    private float playingTimeMax = 30f;
+    private float playingTime = 30f;
     private void Awake()
     {
         Instance = this;
@@ -34,18 +33,14 @@ public class GameManager : MonoBehaviour
     private void Start()
     {
         InputSystem.Instance.OnPauseAction += InputSystem_OnPauseAction;
+        //当玩家按下交互键时，开始游戏
+        InputSystem.Instance.OnInteractAction += InputSystem_OnInteractAction;
     }
     private void Update()
     {
         switch (state)
         {
             case State.waiting:
-                waitingTime -= Time.deltaTime;
-                if (waitingTime <= 0)
-                {
-                    state = State.countingDown;
-                    OnStateChanged?.Invoke(this, new EventArgs());
-                }
                 break;
             case State.countingDown:
                 countingDownTime -= Time.deltaTime;
@@ -65,6 +60,14 @@ public class GameManager : MonoBehaviour
                 break;
             case State.over:
                 break;
+        }
+    }
+    private void InputSystem_OnInteractAction(object sender, EventArgs e)
+    {
+        if (state == State.waiting)
+        {
+            state = State.countingDown;
+            OnStateChanged?.Invoke(this, new EventArgs());
         }
     }
     //判断游戏是否Playing

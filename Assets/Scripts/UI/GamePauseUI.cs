@@ -11,7 +11,11 @@ public class GamePauseUI : MonoBehaviour
     {
         resumeButton.onClick.AddListener(() => GameManager.Instance.TogglePauseGame());
         mainMenuButton.onClick.AddListener(() => Loader.LoadScene(Loader.Scene.MainMenuScene));
-        optionsButton.onClick.AddListener(() => OptionsUI.Instance.Show());
+        //点击options按钮时，打开options面板，并传入一个事件：当options面板关闭时要调用的事件（这里是重新打开暂停面板）
+        optionsButton.onClick.AddListener(() => {
+            Hide();
+            OptionsUI.Instance.Show(Show);
+        });
     }
 
     private void Start()
@@ -20,6 +24,7 @@ public class GamePauseUI : MonoBehaviour
         GameManager.Instance.OnPauseGame += GameManager_OnPauseGame;
         //订阅恢复游戏事件
         GameManager.Instance.OnResumeGame += GameManager_OnResumeGame;
+        
         Hide();
     }
     private void GameManager_OnPauseGame(object sender, EventArgs e)
@@ -37,5 +42,7 @@ public class GamePauseUI : MonoBehaviour
     private void Show()
     {
         gameObject.SetActive(true);
+        //高亮resume按钮，方便玩家手柄和键盘操作
+        resumeButton.Select();
     }
 }

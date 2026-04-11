@@ -21,7 +21,11 @@ public class InputSystem : MonoBehaviour
         Move_Right,
         Interact,
         Interact_Alternate,
-        Pause
+        Pause,
+        Gamepad_Interact,
+        Gamepad_Interact_Alternate,
+        Gamepad_Pause,
+        Gamepad_Move
     }
     void Awake()
     {
@@ -89,6 +93,14 @@ public class InputSystem : MonoBehaviour
                 return inputActions.Player.InteractAlternative.bindings[0].ToDisplayString();
             case Binding.Pause:
                 return inputActions.Player.Pause.bindings[0].ToDisplayString();
+            case Binding.Gamepad_Interact:
+                return inputActions.Player.Interact.bindings[1].ToDisplayString();
+            case Binding.Gamepad_Interact_Alternate:
+                return inputActions.Player.InteractAlternative.bindings[1].ToDisplayString();
+            case Binding.Gamepad_Pause:
+                return inputActions.Player.Pause.bindings[1].ToDisplayString();
+            case Binding.Gamepad_Move:
+                return inputActions.Player.Move.bindings[10].ToDisplayString();
         }
     }
     //重新绑定按键
@@ -130,6 +142,19 @@ public class InputSystem : MonoBehaviour
                 inputAction = inputActions.Player.Pause;
                 bindingIndex = 0;
                 break;
+            case Binding.Gamepad_Interact:
+                inputAction = inputActions.Player.Interact;
+                bindingIndex = 1;
+                break;
+            case Binding.Gamepad_Interact_Alternate:
+                inputAction = inputActions.Player.InteractAlternative;
+                bindingIndex = 1;
+                break;
+            case Binding.Gamepad_Pause:
+                inputAction = inputActions.Player.Pause;
+                bindingIndex = 1;
+                break;
+    
         }
 
         // 开始重新绑定

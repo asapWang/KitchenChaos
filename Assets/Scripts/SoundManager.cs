@@ -78,4 +78,14 @@ public class SoundManager : MonoBehaviour
     {
         PlaySound(soundRefSO.footStepSoundList, position, volume);
     }
+    //专门为播放数字弹出音效而创建的方法
+    public void PlayNumberPopUpSound()
+    {
+        PlaySound(soundRefSO.warningSoundList, Vector3.zero);
+    }
+    //专门为播放警告音效而创建的方法
+    public void PlayWarningSound(Vector3 position, float volume = 1f)
+    {
+        PlaySound(soundRefSO.warningSoundList, position, volume);
+    }
 }

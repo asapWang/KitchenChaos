@@ -28,7 +28,8 @@ public class DeliveryManager : MonoBehaviour
     private void Update()
     {
         waitingRecipeTimer += Time.deltaTime;
-        if (waitingRecipeTimer >= waitingRecipeTimerMax)
+        //加个条件，只有在游戏状态是playing的时候才生成订单
+        if (waitingRecipeTimer >= waitingRecipeTimerMax && GameManager.Instance.IsPlaying())
         {
             //每隔4秒生成一个新的订单
             waitingRecipeTimer = 0f;
