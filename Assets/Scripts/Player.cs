@@ -1,7 +1,8 @@
 using UnityEngine;
 using System;
+using Unity.Netcode;
 
-public class Player : MonoBehaviour, IGetKitchenObject
+public class Player : NetworkBehaviour, IGetKitchenObject
 {
     [SerializeField] private float moveSpeed;
     [SerializeField] private LayerMask counterLayerMask;
@@ -19,15 +20,12 @@ public class Player : MonoBehaviour, IGetKitchenObject
     }
     //拾取物品音效事件
     public event EventHandler OnPickup;
-    public static Player Instance { get; private set; }
+    //为了联机不报错，暂时注释掉单例模式，等联机功能做好了再改回来
+    //public static Player Instance { get; private set; }
     
     private void Awake()
     {
-        if (Instance != null)
-        {
-            Debug.LogError("There is more than one Player instance!");
-        }
-        Instance = this;
+        //Instance = this;
     }
     private void Start()
     {

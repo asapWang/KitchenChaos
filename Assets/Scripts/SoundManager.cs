@@ -22,7 +22,7 @@ public class SoundManager : MonoBehaviour
         BaseCounter.OnAnyObjectPlacedHere += BaseCounter_OnAnyObjectPlacedHere;
         TrashCounter.OnAnyObjectThrownHere += TrashCounter_OnAnyObjectThrownHere;
         //以下为通过实例订阅事件，事件定义时没有加上static，因为场景中只有一个实例
-        Player.Instance.OnPickup += Player_OnPickup;
+        //Player.Instance.OnPickup += Player_OnPickup;
     }
 
     private void DeliveryManager_OnDeliverSuccess(object sender, System.EventArgs e)
@@ -53,7 +53,7 @@ public class SoundManager : MonoBehaviour
     }
     private void Player_OnPickup(object sender, System.EventArgs e)
     {
-        PlaySound(soundRefSO.objectPickupSoundList, Player.Instance.transform.position);
+        //PlaySound(soundRefSO.objectPickupSoundList, Player.Instance.transform.position);
     }
     //重载PlaySound方法，可以传入一个音效列表
     private void PlaySound(List<AudioClip> audioClipList, Vector3 position, float volume = 1f)

@@ -6,7 +6,7 @@ public class SelectedCounter : MonoBehaviour
     [SerializeField] private GameObject[] highlightGameObject;
     private void Start()
     {
-        Player.Instance.OnSelectedCounter += Player_OnSelectedCounter;
+        //Player.Instance.OnSelectedCounter += Player_OnSelectedCounter;
     }
     private void Player_OnSelectedCounter(object sender, Player.SelectedCounterEventArgs e)
     {

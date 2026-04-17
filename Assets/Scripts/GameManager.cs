@@ -22,19 +22,23 @@ public class GameManager : MonoBehaviour
     //暂停游戏
     private bool isPaused = false;
     //状态时间变量
-    private float countingDownTime = 3f;
+    private float countingDownTime = 1f;
     private float playingTimeMax = 30f;
     private float playingTime = 30f;
     private void Awake()
     {
         Instance = this;
         state = State.waiting;
+
     }
     private void Start()
     {
         InputSystem.Instance.OnPauseAction += InputSystem_OnPauseAction;
         //当玩家按下交互键时，开始游戏
         InputSystem.Instance.OnInteractAction += InputSystem_OnInteractAction;
+        //先取消教程UI，方便测试，等联机功能做好了再改回来
+        state = State.countingDown;
+        OnStateChanged?.Invoke(this, new EventArgs());
     }
     private void Update()
     {
