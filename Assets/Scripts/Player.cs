@@ -60,6 +60,10 @@ public class Player : NetworkBehaviour, IGetKitchenObject
    
     private void Update()
     {
+        //IsOwner是NetworkBehaviour提供的属性，用于判断当前脚本实例是否属于本地玩家。只有本地玩家应该处理输入和控制角色移动，其他玩家的实例应该忽略这些操作。
+        if (!IsOwner){
+            return;
+        }
         HandleMovement();
         HandleInteractions();
     }

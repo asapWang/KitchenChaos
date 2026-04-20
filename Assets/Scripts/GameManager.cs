@@ -23,8 +23,8 @@ public class GameManager : MonoBehaviour
     private bool isPaused = false;
     //状态时间变量
     private float countingDownTime = 1f;
-    private float playingTimeMax = 30f;
-    private float playingTime = 30f;
+    private float playingTimeMax = 100f;
+    private float playingTime = 100f;
     private void Awake()
     {
         Instance = this;

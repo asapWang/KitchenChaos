@@ -1,8 +1,9 @@
 using UnityEngine;
 using System.Collections.Generic;
 using System;
+using Unity.Netcode;
 
-public class DeliveryManager : MonoBehaviour
+public class DeliveryManager : NetworkBehaviour
 {
     [SerializeField] private RecipeSOList recipeSOList;
     //事件：生成订单和完成订单时都要更新订单UI
@@ -15,7 +16,7 @@ public class DeliveryManager : MonoBehaviour
     public static DeliveryManager Instance { get; private set; }
     private List<RecipeSO> waitingRecipeSOList;
     private float waitingRecipeTimer;
-    private float waitingRecipeTimerMax = 4f;
+    private float waitingRecipeTimerMax = 8f;
     private int waitingRecipeCount;
     private int waitingRecipeCountMax = 4;
     //成功送达订单的数量
@@ -27,21 +28,32 @@ public class DeliveryManager : MonoBehaviour
     }
     private void Update()
     {
+        if (!IsServer) 
+            return;
         waitingRecipeTimer += Time.deltaTime;
         //加个条件，只有在游戏状态是playing的时候才生成订单
         if (waitingRecipeTimer >= waitingRecipeTimerMax && GameManager.Instance.IsPlaying())
         {
-            //每隔4秒生成一个新的订单
+            //每隔8秒生成一个新的订单
             waitingRecipeTimer = 0f;
             if (waitingRecipeCount < waitingRecipeCountMax)
             {
-                //最多只能有4个订单
-                waitingRecipeCount++;
-                waitingRecipeSOList.Add(recipeSOList.recipeSOs[UnityEngine.Random.Range(0, recipeSOList.recipeSOs.Length)]);
-                OnRecipeSpawned?.Invoke(this, EventArgs.Empty);
-                Debug.Log(waitingRecipeSOList[waitingRecipeCount - 1].recipeName);
+                //Rpc函数只能值类型，不能传递引用类型，所以这里传递订单SO的索引来生成订单
+                int waitingRecipeSOIndex = UnityEngine.Random.Range(0, recipeSOList.recipeSOs.Length);
+                //根据索引得到订单SO，并添加到等待订单列表中
+                SpawnRecipeClientRpc(waitingRecipeSOIndex);
+
             }
         }
+    }
+    //生成订单的ClientRpc函数，参数是订单SO的索引
+    [ClientRpc]
+    private void SpawnRecipeClientRpc(int waitingRecipeSOIndex)
+    {
+        waitingRecipeCount++;
+        waitingRecipeSOList.Add(recipeSOList.recipeSOs[waitingRecipeSOIndex]);
+        OnRecipeSpawned?.Invoke(this, EventArgs.Empty);
+        Debug.Log(waitingRecipeSOList[waitingRecipeCount - 1].recipeName);
     }
     public void DeliverRecipe(PlateKitchenObject plateKitchenObject)
     {
@@ -68,19 +80,41 @@ public class DeliveryManager : MonoBehaviour
                 }
                 //每个料理匹配结束后，如果isContentCorrect还是true，说明汉堡匹配成功，跳出函数
                 if(isContentCorrect){
-                    Debug.Log("Recipe delivered");
-                    amount++;
-                    waitingRecipeSOList.RemoveAt(i);
-                    waitingRecipeCount--;
-                    OnRecipeCompleted?.Invoke(this, EventArgs.Empty);
-                    OnDeliverSuccess?.Invoke(this, EventArgs.Empty);
+                    DeliverRecipeSuccessServerRpc(i);
                     return;
                 }
             }   
         }
         //汉堡匹配失败
+        DeliverRecipeFailServerRpc();
+    }
+    //客户端检验订单提交成功后调用ServerRpc函数，再由ServerRpc函数调用ClientRpc函数来更新所有客户端的订单状态
+    [ServerRpc(RequireOwnership = false)]
+    private void DeliverRecipeSuccessServerRpc(int deliveredRecipeIndex)
+    {
+        DeliverRecipeSuccessClientRpc(deliveredRecipeIndex);
+    }
+    [ClientRpc]
+    private void DeliverRecipeSuccessClientRpc(int deliveredRecipeIndex)
+    {
+        Debug.Log("Recipe delivered");
+        amount++;
+        waitingRecipeSOList.RemoveAt(deliveredRecipeIndex);
+        waitingRecipeCount--;
+        OnRecipeCompleted?.Invoke(this, EventArgs.Empty);
+        OnDeliverSuccess?.Invoke(this, EventArgs.Empty);
+    }
+    //同理-订单提交失败
+    [ServerRpc(RequireOwnership = false)]
+    public void DeliverRecipeFailServerRpc()
+    {
+        DeliverRecipeFailClientRpc();
+    }
+    [ClientRpc]
+    private void DeliverRecipeFailClientRpc()
+    {
+        Debug.Log("Recipe delivery failed");
         OnDeliverFail?.Invoke(this, EventArgs.Empty);
-        Debug.Log("Recipe not delivered");
     }
 
     //获取当前等待订单的SO列表，方便根据这个列表来生成订单UI
