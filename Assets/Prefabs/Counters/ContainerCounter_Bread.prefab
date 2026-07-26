@@ -16,6 +16,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: ContainerCounter_Bread
       objectReference: {fileID: 0}
+    - target: {fileID: 6841844547725555575, guid: 31b077c9ec54b894bb7f98b951efbeff, type: 3}
+      propertyPath: GlobalObjectIdHash
+      value: 1271306747
+      objectReference: {fileID: 0}
     - target: {fileID: 8360209048223770078, guid: 31b077c9ec54b894bb7f98b951efbeff, type: 3}
       propertyPath: m_Sprite
       value: 

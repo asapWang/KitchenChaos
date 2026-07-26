@@ -1,5 +1,6 @@
 using UnityEngine;
 using System;
+using Unity.Netcode;
 
 public class ContainerCounter : BaseCounter
 {
@@ -12,8 +13,18 @@ public class ContainerCounter : BaseCounter
         {
             
             KitchenObject.SpawnKitchenObject(kitchenObjectSO, player);
-            OnOpenContainer?.Invoke(this, EventArgs.Empty);
+            InteractServerRpc();
         }
        
+    }
+    [ServerRpc(RequireOwnership = false)]
+    public void InteractServerRpc()
+    {
+        InteractClientRpc();
+    }
+    [ClientRpc]
+    public void InteractClientRpc()
+    {
+        OnOpenContainer?.Invoke(this, EventArgs.Empty);
     }
 }

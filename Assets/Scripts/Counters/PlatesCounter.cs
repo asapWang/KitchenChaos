@@ -1,4 +1,6 @@
 using System;
+using NUnit.Framework;
+using Unity.Netcode;
 using UnityEngine;
 
 public class PlatesCounter : BaseCounter
@@ -12,21 +14,43 @@ public class PlatesCounter : BaseCounter
     public event EventHandler OnPlateRemoved;
     private void Update()
     {
+        if(!IsServer)
+        {
+            return;
+        }
         spawnPlateTimer += Time.deltaTime;
         //加个条件，只有在游戏状态是playing的时候才生成盘子
         if (spawnPlateTimer >= spawnPlateTimerMax && GameManager.Instance.IsPlaying())
         {
             spawnPlateTimer = 0f;
-            OnPlateSpawned?.Invoke(this, EventArgs.Empty);
+            SpawnPlateClientRpc();
         }
+    }
+    //同步 生成盘子事件,因为上面的Update只在服务器上执行，所以不用调用ServerRpc来同步了，直接调用ClientRpc就行了
+    [ClientRpc]
+    public void SpawnPlateClientRpc()
+    {
+        OnPlateSpawned?.Invoke(this, EventArgs.Empty);
     }
     public override void Interact(Player player)
     {
         if (!player.HasKitchenObject())
         {
+            //生成厨房物体已经同步过了
             KitchenObject.SpawnKitchenObject(kitchenObjectSOPlate, player);
-            OnPlateRemoved?.Invoke(this, EventArgs.Empty);
+            RemovePlateServerRpc();
         }
+    }
+    //同步 销毁盘子事件
+    [ServerRpc(RequireOwnership = false)]
+    public void RemovePlateServerRpc()
+    {
+        RemovePlateClientRpc();
+    }
+    [ClientRpc]
+    public void RemovePlateClientRpc()
+    {
+        OnPlateRemoved?.Invoke(this, EventArgs.Empty);
     }
 
 }

@@ -1,6 +1,7 @@
 using UnityEngine;
 using System;
-public class BaseCounter : MonoBehaviour,IGetKitchenObject
+using Unity.Netcode;
+public class BaseCounter : NetworkBehaviour,IGetKitchenObject
 {
     [SerializeField] private Transform topClearCounterPosition;
     private KitchenObject kitchenObject;
@@ -54,5 +55,9 @@ public class BaseCounter : MonoBehaviour,IGetKitchenObject
     public KitchenObject GetKitchenObject()
     {
         return kitchenObject;
+    }
+    public NetworkObject GetNetworkObject()
+    {
+        return NetworkObject;
     }
 }

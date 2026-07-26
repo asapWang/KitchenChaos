@@ -1,34 +1,50 @@
+using Unity.Netcode;
 using UnityEngine;
 
-public class KitchenObject : MonoBehaviour
+public class KitchenObject : NetworkBehaviour
 {
     [SerializeField] private KitchenObjectSO kitchenObjectSO;
     
     private IGetKitchenObject iKitchenObjectParent;
+    private FollowTransform followTransform;
+    protected virtual void Awake()
+    {
+        followTransform = GetComponent<FollowTransform>();
+    }
 
     public KitchenObjectSO GetKitchenObjectSO()
     {
         return kitchenObjectSO;
     }
+
+    //设置KitchenObject的父对象，并更新位置和旋转
     public void SetOwner(IGetKitchenObject iKitchenObjectParent)
     {
+        SetOwnerServerRpc(iKitchenObjectParent.GetNetworkObject());
+    }
+    [ServerRpc(RequireOwnership = false)]
+    public void SetOwnerServerRpc(NetworkObjectReference iKitchenObjectParentNetworkObjectReference)
+    {
+        SetOwnerClientRpc(iKitchenObjectParentNetworkObjectReference);
+    }
+    [ClientRpc]
+    public void SetOwnerClientRpc(NetworkObjectReference iKitchenObjectParentNetworkObjectReference)
+    {
+        iKitchenObjectParentNetworkObjectReference.TryGet(out NetworkObject iKitchenObjectParentNetworkObject);
+        IGetKitchenObject iKitchenObjectParent = iKitchenObjectParentNetworkObject.GetComponent<IGetKitchenObject>();
         if(this.iKitchenObjectParent!=null)
         {
             this.iKitchenObjectParent.ClearKitchenObject();
         }
         this.iKitchenObjectParent = iKitchenObjectParent;
         this.iKitchenObjectParent.SetKitchenObject(this);
-        transform.parent = iKitchenObjectParent.GetKitchenObjectPosition();
-        transform.localPosition = Vector3.zero;
-        
+        followTransform.SetTargetTransform(this.iKitchenObjectParent.GetKitchenObjectPosition());
     }
-    public static KitchenObject SpawnKitchenObject(KitchenObjectSO kitchenObjectSO, IGetKitchenObject iKitchenObjectParent)
+    
+    //这个方法是静态的，方便其他脚本调用来生成KitchenObject实例
+    public static void SpawnKitchenObject(KitchenObjectSO kitchenObjectSO, IGetKitchenObject iKitchenObjectParent)
     {
-        //Instantiate会生成实例，并把第一个transform变成第二个transform的子物体，返回值是第一个transform，也可以不指定父对象
-        Transform kitchenObjectTransform = Instantiate(kitchenObjectSO.kitchenObjectPrefab.transform);
-        KitchenObject kitchenObject = kitchenObjectTransform.GetComponent<KitchenObject>();
-        kitchenObject.SetOwner(iKitchenObjectParent);
-        return kitchenObject;
+        GameMultiplayer.Instance.SpawnKitchenObject(kitchenObjectSO, iKitchenObjectParent);
     }
 
     public void DestroySelf()

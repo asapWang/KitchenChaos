@@ -16,6 +16,10 @@ PrefabInstance:
       propertyPath: m_Layer
       value: 6
       objectReference: {fileID: 0}
+    - target: {fileID: 6848094491739919831, guid: 6fbd347c1c9c59f40a5ad3806b18c837, type: 3}
+      propertyPath: GlobalObjectIdHash
+      value: 2984972936
+      objectReference: {fileID: 0}
     - target: {fileID: 8589592757664186890, guid: 6fbd347c1c9c59f40a5ad3806b18c837, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
@@ -92,6 +96,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6a3f5eaadbc087b41820866647c6c1a8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  ShowTopMostFoldoutHeaderGroup: 1
   topClearCounterPosition: {fileID: 5043437708935979417}
   kitchenObjectSO: {fileID: 0}
 --- !u!4 &8560799664138346666 stripped

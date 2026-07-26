@@ -1,6 +1,8 @@
 using UnityEngine;
 using System;
 using Unity.Netcode;
+using UnityEngine.SocialPlatforms;
+using Unity.VisualScripting;
 
 public class Player : NetworkBehaviour, IGetKitchenObject
 {
@@ -20,12 +22,17 @@ public class Player : NetworkBehaviour, IGetKitchenObject
     }
     //拾取物品音效事件
     public event EventHandler OnPickup;
-    //为了联机不报错，暂时注释掉单例模式，等联机功能做好了再改回来
-    //public static Player Instance { get; private set; }
+    public static event EventHandler OnPlayerSpawned;
+    public static event EventHandler OnAnyPlayerPickup;
+    public static Player LocalInstance { get; private set; }
     
-    private void Awake()
+    public override void OnNetworkSpawn()
     {
-        //Instance = this;
+        if (IsOwner)
+        {
+            LocalInstance = this;
+            OnPlayerSpawned?.Invoke(this, EventArgs.Empty);
+        }
     }
     private void Start()
     {
@@ -147,6 +154,11 @@ public class Player : NetworkBehaviour, IGetKitchenObject
         OnSelectedCounter?.Invoke(this, new SelectedCounterEventArgs { selectedCounter = selectedCounter });
     }
 
+    public static void ResetStaticData()
+    {
+        OnPlayerSpawned = null;
+    }
+
 
 
 
@@ -167,6 +179,7 @@ public class Player : NetworkBehaviour, IGetKitchenObject
         if (kitchenObject != null)
         {
             OnPickup?.Invoke(this, EventArgs.Empty);
+            OnAnyPlayerPickup?.Invoke(this, EventArgs.Empty);
         }
     }
 
@@ -177,5 +190,9 @@ public class Player : NetworkBehaviour, IGetKitchenObject
     public KitchenObject GetKitchenObject()
     {
         return kitchenObject;
+    }
+    public NetworkObject GetNetworkObject()
+    {
+        return NetworkObject;
     }
 }

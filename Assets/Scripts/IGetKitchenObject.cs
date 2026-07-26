@@ -1,3 +1,4 @@
+using Unity.Netcode;
 using UnityEngine;
 
 public interface IGetKitchenObject
@@ -11,5 +12,7 @@ public interface IGetKitchenObject
     public bool HasKitchenObject();
 
     public KitchenObject GetKitchenObject();
+
+    public NetworkObject GetNetworkObject();
    
 }
