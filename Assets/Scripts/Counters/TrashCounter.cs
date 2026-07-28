@@ -1,6 +1,7 @@
 using System;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using Unity.Netcode;
 
 public class TrashCounter : BaseCounter
 {
@@ -15,8 +16,19 @@ public class TrashCounter : BaseCounter
     {
         if (player.HasKitchenObject())
         {
-            player.GetKitchenObject().DestroySelf();
-            OnAnyObjectThrownHere?.Invoke(this, EventArgs.Empty);
+            KitchenObject.DestroyKitchenObject(player.GetKitchenObject());
+            InteractLogicServerRpc();
         }
+    }
+    //同步扔垃圾音效
+    [ServerRpc(RequireOwnership = false)]
+    public void InteractLogicServerRpc()
+    {
+        InteractLogicClientRpc();
+    }
+    [ClientRpc]
+    public void InteractLogicClientRpc()
+    {
+        OnAnyObjectThrownHere?.Invoke(this, EventArgs.Empty);
     }
 }

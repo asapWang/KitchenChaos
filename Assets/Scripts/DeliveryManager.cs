@@ -89,7 +89,7 @@ public class DeliveryManager : NetworkBehaviour
         DeliverRecipeFailServerRpc();
     }
     //客户端检验订单提交成功后调用ServerRpc函数，再由ServerRpc函数调用ClientRpc函数来更新所有客户端的订单状态
-    [ServerRpc(InvokePermission = RpcInvokePermission.Everyone)]
+    [ServerRpc(RequireOwnership = false)]
     private void DeliverRecipeSuccessServerRpc(int deliveredRecipeIndex)
     {
         DeliverRecipeSuccessClientRpc(deliveredRecipeIndex);
@@ -105,7 +105,7 @@ public class DeliveryManager : NetworkBehaviour
         OnDeliverSuccess?.Invoke(this, EventArgs.Empty);
     }
     //同理-订单提交失败
-    [ServerRpc(InvokePermission = RpcInvokePermission.Everyone)]
+    [ServerRpc(RequireOwnership = false)]
     public void DeliverRecipeFailServerRpc()
     {
         DeliverRecipeFailClientRpc();

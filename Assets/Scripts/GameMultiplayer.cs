@@ -16,8 +16,6 @@ public class GameMultiplayer : NetworkBehaviour
         //通过转换，把KitchenObjectSO转换成索引和把父物体转换为NetworkObject，传递给RPC方法
         SpawnKitchenObjectServerRpc(GetKitchenObjectSOIndex(kitchenObjectSO), iKitchenObjectParent.GetNetworkObject());
     }
-
-
     [ServerRpc(RequireOwnership = false)]
     //RPC方法的参数不能是引用类型，所以传递KitchenObjectSO的索引和结构体NetworkObjectReference，此结构体可以接受NetworkObject作为参数，并在RPC方法中通过TryGet方法获取NetworkObject
     public void SpawnKitchenObjectServerRpc(int kitchenObjectSOIndex, NetworkObjectReference ikitchenObjectParentNetworkObjectReference)
@@ -32,6 +30,38 @@ public class GameMultiplayer : NetworkBehaviour
         IGetKitchenObject ikitchenObjectParent = ikitchenObjectParentNetworkObject.GetComponent<IGetKitchenObject>();
         kitchenObject.SetOwner(ikitchenObjectParent);
     }
+
+    //KitchenObject脚本调用这个方法继而调用ServerRpc来销毁KitchenObject实例并同步
+    public void DestroyKitchenObject(KitchenObject kitchenObject)
+    {
+        DestroyKitchenObjectServerRpc(kitchenObject.NetworkObject);
+    }
+    [ServerRpc(RequireOwnership = false)]
+    public void DestroyKitchenObjectServerRpc(NetworkObjectReference kitchenObjectNetworkObjectReference)
+    {
+        kitchenObjectNetworkObjectReference.TryGet(out NetworkObject kitchenObjectNetworkObject);
+        KitchenObject kitchenObject = kitchenObjectNetworkObject.GetComponent<KitchenObject>();
+        //销毁KitchenObject实例前，先清楚父对象对kitchenObject的引用
+        ClearKitchenObjectClientRpc(kitchenObject.NetworkObject);
+        kitchenObject.DestroySelf();
+    }
+    //清楚父对象对kitchenObject的引用
+    [ClientRpc]
+    public void ClearKitchenObjectClientRpc(NetworkObjectReference kitchenObjectNetworkObjectReference)
+    {
+        kitchenObjectNetworkObjectReference.TryGet(out NetworkObject kitchenObjectNetworkObject);
+        KitchenObject kitchenObject = kitchenObjectNetworkObject.GetComponent<KitchenObject>();
+        kitchenObject.ClearKitchenObjectOnParent();
+    }
+
+
+
+
+
+
+
+
+
 
     
     //得到KitchenObjectSO的索引

@@ -46,11 +46,19 @@ public class KitchenObject : NetworkBehaviour
     {
         GameMultiplayer.Instance.SpawnKitchenObject(kitchenObjectSO, iKitchenObjectParent);
     }
+    //销毁方法其实不需要静态，但跟上面保持一致
+    public static void DestroyKitchenObject(KitchenObject kitchenObject)
+    {
+        GameMultiplayer.Instance.DestroyKitchenObject(kitchenObject);
+    }
 
     public void DestroySelf()
     {
-        iKitchenObjectParent.ClearKitchenObject(); 
         Destroy(gameObject);
+    }
+    public void ClearKitchenObjectOnParent()
+    {
+        iKitchenObjectParent.ClearKitchenObject();
     }
 
     public bool TryGetPlate(out PlateKitchenObject plateKitchenObject)

@@ -12,6 +12,7 @@ public class PlatesCounter : BaseCounter
     private float spawnPlateTimerMax = 4f;
     public event EventHandler OnPlateSpawned;
     public event EventHandler OnPlateRemoved;
+    //在Update里生成盘子visualPrefab
     private void Update()
     {
         if(!IsServer)
@@ -32,6 +33,7 @@ public class PlatesCounter : BaseCounter
     {
         OnPlateSpawned?.Invoke(this, EventArgs.Empty);
     }
+    //玩家交互时，生成一个盘子实体给玩家，并销毁柜子上的盘子visualPrefab
     public override void Interact(Player player)
     {
         if (!player.HasKitchenObject())
