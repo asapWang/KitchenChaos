@@ -1,4 +1,5 @@
 using System;
+using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.EventSystems;
 
@@ -25,11 +26,7 @@ public class CuttingCounter : BaseCounter, IHasProgress
                 //Player有物体
                 if(HasRecipeWithInput(player.GetKitchenObject().GetKitchenObjectSO()))
                 {
-                    cuttingProgress = 0;
-                    OnProgressBarUIChanged?.Invoke(this, new IHasProgress.OnProgressBarUIChangedEventArgs
-                    {
-                        progressNormalized = (float)cuttingProgress / GetCuttingRecipeSO(player.GetKitchenObject().GetKitchenObjectSO()).cuttingProgressMax
-                    });
+                    ResetProgressServerRpc();
                     player.GetKitchenObject().SetOwner(this);
                 }
             }
@@ -65,24 +62,56 @@ public class CuttingCounter : BaseCounter, IHasProgress
             }
         }
     }
+    //同步物体刚放到柜子上的进度条
+    [ServerRpc(RequireOwnership = false)]
+    public void ResetProgressServerRpc()
+    {
+        ResetProgressClientRpc();
+    }
+    [ClientRpc]
+    public void ResetProgressClientRpc()
+    {
+        cuttingProgress = 0;
+        OnProgressBarUIChanged?.Invoke(this, new IHasProgress.OnProgressBarUIChangedEventArgs
+        {
+            progressNormalized = 0f
+        });
+    }
 
     public override void InteractAlternative()
     {
         if(HasKitchenObject() && HasRecipeWithInput(GetKitchenObject().GetKitchenObjectSO()))
         {
-            cuttingProgress++;
-            OnProgressBarUIChanged?.Invoke(this, new IHasProgress.OnProgressBarUIChangedEventArgs
-            {
-                 progressNormalized = (float)cuttingProgress / GetCuttingRecipeSO(GetKitchenObject().GetKitchenObjectSO()).cuttingProgressMax
-            });
-            OnCutting?.Invoke(this, EventArgs.Empty);
-            OnAnyCutting?.Invoke(this, EventArgs.Empty);
-            if(cuttingProgress>= GetCuttingRecipeSO(GetKitchenObject().GetKitchenObjectSO()).cuttingProgressMax)
-            {
-                KitchenObjectSO output= GetOutputCuttingRecipeSO(GetKitchenObject().GetKitchenObjectSO());
-                GetKitchenObject().DestroySelf();
-                KitchenObject.SpawnKitchenObject(output,this);
-            }
+            CutObjectServerRpc();
+            TestingCuttingProgressDownServerRpc();
+        }
+    }
+    //同步物体放到柜子上之后的切割
+    [ServerRpc(RequireOwnership = false)]
+    public void CutObjectServerRpc()
+    {
+        CutObjectClientRpc();
+    }
+    [ClientRpc]
+    public void CutObjectClientRpc()
+    {
+        cuttingProgress++;
+        OnProgressBarUIChanged?.Invoke(this, new IHasProgress.OnProgressBarUIChangedEventArgs
+        {
+                progressNormalized = (float)cuttingProgress / GetCuttingRecipeSO(GetKitchenObject().GetKitchenObjectSO()).cuttingProgressMax
+        });
+        OnCutting?.Invoke(this, EventArgs.Empty);
+        OnAnyCutting?.Invoke(this, EventArgs.Empty);
+    }
+    //判断切割是否完成，让server销毁和生成物体
+    [ServerRpc(RequireOwnership = false)]
+    public void TestingCuttingProgressDownServerRpc()
+    {
+        if(cuttingProgress>= GetCuttingRecipeSO(GetKitchenObject().GetKitchenObjectSO()).cuttingProgressMax)
+        {
+            KitchenObjectSO output= GetOutputCuttingRecipeSO(GetKitchenObject().GetKitchenObjectSO());
+            KitchenObject.DestroyKitchenObject(GetKitchenObject());
+            KitchenObject.SpawnKitchenObject(output,this);
         }
     }
 
