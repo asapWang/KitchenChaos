@@ -26,7 +26,7 @@ public class CuttingCounter : BaseCounter, IHasProgress
                 //Player有物体
                 if(HasRecipeWithInput(player.GetKitchenObject().GetKitchenObjectSO()))
                 {
-                    ResetProgressServerRpc();
+                    InteractLogicServerRpc();
                     player.GetKitchenObject().SetOwner(this);
                 }
             }
@@ -54,22 +54,19 @@ public class CuttingCounter : BaseCounter, IHasProgress
             else
             {
                 //Player没有物体
-                OnProgressBarUIChanged?.Invoke(this, new IHasProgress.OnProgressBarUIChangedEventArgs
-                {
-                     progressNormalized = 0f
-                });
+                InteractLogicServerRpc();
                 GetKitchenObject().SetOwner(player);
             }
         }
     }
-    //同步物体刚放到柜子上的进度条
+    //同步玩家Interact柜台的逻辑，让所有客户端的进度条归零
     [ServerRpc(RequireOwnership = false)]
-    public void ResetProgressServerRpc()
+    public void InteractLogicServerRpc()
     {
-        ResetProgressClientRpc();
+        InteractLogicClientRpc();
     }
     [ClientRpc]
-    public void ResetProgressClientRpc()
+    public void InteractLogicClientRpc()
     {
         cuttingProgress = 0;
         OnProgressBarUIChanged?.Invoke(this, new IHasProgress.OnProgressBarUIChangedEventArgs

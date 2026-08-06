@@ -65,12 +65,12 @@ public class GameMultiplayer : NetworkBehaviour
 
     
     //得到KitchenObjectSO的索引
-    private int GetKitchenObjectSOIndex(KitchenObjectSO kitchenObjectSO)
+    public int GetKitchenObjectSOIndex(KitchenObjectSO kitchenObjectSO)
     {
         return kitchenObjectListSO.kitchenObjectSOList.IndexOf(kitchenObjectSO);
     }
     //根据索引得到KitchenObjectSO
-    private KitchenObjectSO GetKitchenObjectSOFromIndex(int index)
+    public KitchenObjectSO GetKitchenObjectSOFromIndex(int index)
     {
         return kitchenObjectListSO.kitchenObjectSOList[index];
     }
