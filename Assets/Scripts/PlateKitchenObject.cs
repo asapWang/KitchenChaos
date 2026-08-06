@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using System;
+using Unity.Netcode;
 
 public class PlateKitchenObject : KitchenObject
 {
@@ -28,11 +29,22 @@ public class PlateKitchenObject : KitchenObject
         {
             return false;
         }
-        addedKitchenObjectSOs.Add(kitchenObjectSO);
-        OnIngredientVisualShowed?.Invoke(this, new OnIngredientVisualShowedEventArgs { kitchenObjectSO = kitchenObjectSO });
+        AddIngredientServerRpc(GameMultiplayer.Instance.GetKitchenObjectSOIndex(kitchenObjectSO));
         return true;
     }
-
+    //同步拿盘子装上物体
+    [ServerRpc(RequireOwnership = false)]
+    public void AddIngredientServerRpc(int kitchenObjectSOIndex)
+    {
+        AddIngredientClientRpc(kitchenObjectSOIndex);      
+    }
+    [ClientRpc]
+    public void AddIngredientClientRpc(int kitchenObjectSOIndex)
+    {
+        KitchenObjectSO kitchenObjectSO = GameMultiplayer.Instance.GetKitchenObjectSOFromIndex(kitchenObjectSOIndex);
+        addedKitchenObjectSOs.Add(kitchenObjectSO);
+        OnIngredientVisualShowed?.Invoke(this, new OnIngredientVisualShowedEventArgs { kitchenObjectSO = kitchenObjectSO });
+    }
     public List<KitchenObjectSO> GetAddedKitchenObjectSOs()
     {
         return addedKitchenObjectSOs;

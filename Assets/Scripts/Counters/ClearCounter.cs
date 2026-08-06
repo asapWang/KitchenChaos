@@ -30,7 +30,7 @@ public class ClearCounter : BaseCounter
                     //Player手上是盘子
                     if (plateKitchenObject.TryAddIngredient(GetKitchenObject().GetKitchenObjectSO()))
                     {
-                        GetKitchenObject().DestroySelf();
+                        KitchenObject.DestroyKitchenObject(GetKitchenObject());
                     }
                 }else{
                     //Player手上不是盘子
@@ -39,7 +39,7 @@ public class ClearCounter : BaseCounter
                     //Counter上是盘子
                         if (plateKitchenObject.TryAddIngredient(player.GetKitchenObject().GetKitchenObjectSO()))
                         {
-                            player.GetKitchenObject().DestroySelf();
+                            KitchenObject.DestroyKitchenObject(player.GetKitchenObject());
                         }
                     }
                 }

@@ -47,7 +47,7 @@ public class CuttingCounter : BaseCounter, IHasProgress
                     //Player手上是盘子
                     if (plateKitchenObject.TryAddIngredient(GetKitchenObject().GetKitchenObjectSO()))
                     {
-                        GetKitchenObject().DestroySelf();
+                        KitchenObject.DestroyKitchenObject(GetKitchenObject());
                     }
                 }
             }
