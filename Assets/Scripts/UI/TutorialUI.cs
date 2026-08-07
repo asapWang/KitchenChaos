@@ -17,17 +17,18 @@ public class TutorialUI : MonoBehaviour
     [SerializeField] private TextMeshProUGUI pausePadText;
     private void Start()
     {
-        GameManager.Instance.OnStateChanged += GameManager_OnStateChanged;
+        GameManager.Instance.OnLocalPlayerReadyChanged += GameManager_OnLocalPlayerReadyChanged;
         UpdateVisual();
         Show();
     }
-    private void GameManager_OnStateChanged(object sender, EventArgs e)
+    private void GameManager_OnLocalPlayerReadyChanged(object sender, EventArgs e)
     {
-        if (GameManager.Instance.IsCountingDown())
+        if (GameManager.Instance.IsPlayerReady())
         {
             Hide();
         }
     }
+
     //更新UI显示的按键绑定文本
     private void UpdateVisual()
     {
