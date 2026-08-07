@@ -3,12 +3,15 @@ using System;
 using Unity.Netcode;
 using UnityEngine.SocialPlatforms;
 using Unity.VisualScripting;
+using System.Collections.Generic;
 
 public class Player : NetworkBehaviour, IGetKitchenObject
 {
     [SerializeField] private float moveSpeed;
     [SerializeField] private LayerMask counterLayerMask;
+    [SerializeField] private LayerMask collisionLayerMask;
     [SerializeField] private Transform playerHandPosition;
+    [SerializeField] private List<Vector3> spawnPositionList;
     //isMoving只用于动画控制
     private bool isMoving;
     private Vector3 lastMoveDir;
@@ -33,6 +36,7 @@ public class Player : NetworkBehaviour, IGetKitchenObject
             LocalInstance = this;
             OnPlayerSpawned?.Invoke(this, EventArgs.Empty);
         }
+        transform.position = spawnPositionList[(int)OwnerClientId];
     }
     private void Start()
     {
@@ -92,19 +96,20 @@ public class Player : NetworkBehaviour, IGetKitchenObject
         float playerHeight = 2f;
         float playerRadius = 0.7f;
         float moveDistance = moveSpeed * Time.deltaTime;
-        bool canMove= !Physics.CapsuleCast(transform.position, transform.position + Vector3.up * playerHeight, playerRadius, realMovePosition, moveDistance);
+        bool canMove= !Physics.BoxCast(transform.position, Vector3.one * playerRadius, realMovePosition, Quaternion.identity, moveDistance, collisionLayerMask);
         if (!canMove)
         {
             //加上0.5f的容错，是因为手柄不可能完全水平或者垂直，eg:玩家用手柄只想对准上方柜子，摇杆不必完全垂直向上便能停下；
             //0.5的容错不是死定的，可以自己调节，但别搞错向量1的45度分量不是0.5，而是0.7071，所以0.5的容错其实是比较大的了，玩家只要摇杆大致朝一个方向，就能停下来，这样手柄操作就不会太麻烦了
-            canMove = (realMovePosition.x<-0.5f||realMovePosition.x>0.5f) && !Physics.CapsuleCast(transform.position, transform.position + Vector3.up * playerHeight, playerRadius, new Vector3(realMovePosition.x, 0, 0), moveDistance);
+            //改为boxcast，避免胶囊体碰到box边缘时，x和z方向都不能移动，导致玩家卡住
+            canMove = (realMovePosition.x<-0.5f||realMovePosition.x>0.5f) && !Physics.BoxCast(transform.position, Vector3.one * playerRadius, new Vector3(realMovePosition.x, 0, 0), Quaternion.identity, moveDistance, collisionLayerMask);
             if (canMove)
             {
                 realMovePosition = new Vector3(realMovePosition.x, 0, 0).normalized;
             }
             else
             {
-                canMove = (realMovePosition.z<-0.5f||realMovePosition.z>0.5f) && !Physics.CapsuleCast(transform.position, transform.position + Vector3.up * playerHeight, playerRadius, new Vector3(0, 0, realMovePosition.z), moveDistance);
+                canMove = (realMovePosition.z<-0.5f||realMovePosition.z>0.5f) && !Physics.BoxCast(transform.position, Vector3.one * playerRadius, new Vector3(0, 0, realMovePosition.z), Quaternion.identity, moveDistance, collisionLayerMask);
                 if (canMove)
                 {
                     realMovePosition = new Vector3(0, 0, realMovePosition.z).normalized;

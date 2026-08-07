@@ -44,7 +44,8 @@ GameObject:
   - component: {fileID: 4248033346309608031}
   - component: {fileID: 4930677828401202636}
   - component: {fileID: 1556548511377091102}
-  m_Layer: 0
+  - component: {fileID: 8935339726306868390}
+  m_Layer: 7
   m_Name: Player
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -111,7 +112,15 @@ MonoBehaviour:
   counterLayerMask:
     serializedVersion: 2
     m_Bits: 64
+  collisionLayerMask:
+    serializedVersion: 2
+    m_Bits: 192
   playerHandPosition: {fileID: 4890395277873522611}
+  spawnPositionList:
+  - {x: 2, y: 0, z: 2}
+  - {x: 2, y: 0, z: -2}
+  - {x: -2, y: 0, z: 2}
+  - {x: -2, y: 0, z: -2}
 --- !u!114 &4930677828401202636
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -170,6 +179,27 @@ MonoBehaviour:
   SwitchTransformSpaceWhenParented: 0
   Interpolate: 1
   SlerpPosition: 0
+--- !u!65 &8935339726306868390
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8038907088546053207}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 1.3, y: 1, z: 1.3}
+  m_Center: {x: 0, y: 0.5, z: 0}
 --- !u!1001 &5767601158024336121
 PrefabInstance:
   m_ObjectHideFlags: 0
