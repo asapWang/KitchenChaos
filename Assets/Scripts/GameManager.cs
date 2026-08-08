@@ -7,10 +7,12 @@ public class GameManager : NetworkBehaviour
     public static GameManager Instance { get; private set; }
     //游戏状态改变事件
     public event EventHandler OnStateChanged;
-    //暂停游戏事件
-    public event EventHandler OnPauseGame;
-    //恢复游戏事件
-    public event EventHandler OnResumeGame;
+    //本地暂停与恢复游戏事件，作用就是show或hide暂停面板
+    public event EventHandler OnLocalPauseGame;
+    public event EventHandler OnLocalUnpauseGame;
+    //多人暂停与恢复游戏事件，作用就是show或hide等待他人面板，游戏暂停且本地也暂停，暂定面板会盖住等待他人面板
+    public event EventHandler OnMultiplayerPauseGame;
+    public event EventHandler OnMultiplayerUnpauseGame;
     //玩家准备状态改变事件
     public event EventHandler OnLocalPlayerReadyChanged;
     //游戏状态枚举
@@ -24,7 +26,10 @@ public class GameManager : NetworkBehaviour
     //同步游戏状态
     private NetworkVariable<State> state= new NetworkVariable<State>(State.waiting);
     //暂停游戏
-    private bool isPaused = false;
+    //本地是否暂停
+    private bool isLocalPaused = false;
+    //游戏是否暂停
+    private NetworkVariable<bool> isPaused = new NetworkVariable<bool>(false);
     //时间变量
     //同步时间
     private NetworkVariable<float> countingDownTime = new NetworkVariable<float>(3f);
@@ -33,10 +38,13 @@ public class GameManager : NetworkBehaviour
     private bool isPlayerReady = false;
     //字典用于存储每个玩家的准备状态，只让Server修改;`ulong` 是 C# 的 64 位无符号整数,是ClientId的类型
     private Dictionary<ulong, bool> playerReadyDictionary; 
+    //字典存储每个玩家是否pause
+    private Dictionary<ulong, bool> playerPausedDictionary;
     private void Awake()
     {
         Instance = this;
         playerReadyDictionary = new Dictionary<ulong, bool>();
+        playerPausedDictionary = new Dictionary<ulong, bool>();
     }
     private void Start()
     {
@@ -48,10 +56,25 @@ public class GameManager : NetworkBehaviour
     public override void OnNetworkSpawn()
     {
         state.OnValueChanged += State_OnValueChanged; 
+        isPaused.OnValueChanged += IsPaused_OnValueChanged;
     }
     private void State_OnValueChanged(State previousValue, State newValue)
     {
         OnStateChanged?.Invoke(this, new EventArgs());
+    }
+    private void IsPaused_OnValueChanged(bool previousValue, bool newValue)
+    {
+        if (isPaused.Value)
+        {
+            Time.timeScale = 0;
+            //游戏暂停了，显示等待他人面板
+            OnMultiplayerPauseGame?.Invoke(this, EventArgs.Empty);
+        }
+        else
+        {
+            Time.timeScale = 1;
+            OnMultiplayerUnpauseGame?.Invoke(this, EventArgs.Empty);
+        }
     }
     private void Update()
     {
@@ -146,20 +169,45 @@ public class GameManager : NetworkBehaviour
     //暂停游戏
     public void TogglePauseGame()
     {
-        isPaused = !isPaused;
-        if (isPaused)
+        isLocalPaused = !isLocalPaused;
+        if (isLocalPaused)
         {
-            //改变时间缩放为0
-            Time.timeScale = 0;
-            //监听暂停游戏事件
-            OnPauseGame?.Invoke(this, EventArgs.Empty);
+            PauseGameServerRpc();
+            //本地暂停了，显示暂停面板
+            OnLocalPauseGame?.Invoke(this, EventArgs.Empty);
         }
         else
         {
-            Time.timeScale = 1;
-            //监听恢复游戏事件
-            OnResumeGame?.Invoke(this, EventArgs.Empty);
+            UnpauseGameServerRpc();
+            OnLocalUnpauseGame?.Invoke(this, EventArgs.Empty);
         }
+    }
+    //记录并判断每个玩家是否暂停游戏
+    [ServerRpc(RequireOwnership = false)]
+    private void PauseGameServerRpc(ServerRpcParams serverRpcParams = default)
+    {
+        playerPausedDictionary[serverRpcParams.Receive.SenderClientId] = true;
+        TestAllPlayersPaused();
+    }
+    [ServerRpc(RequireOwnership = false)]
+    private void UnpauseGameServerRpc(ServerRpcParams serverRpcParams = default)
+    {
+        playerPausedDictionary[serverRpcParams.Receive.SenderClientId] = false;
+        TestAllPlayersPaused();
+    }
+    //判断所有玩家是否都暂停游戏
+    public void TestAllPlayersPaused()
+    {
+        foreach (ulong clientId in NetworkManager.Singleton.ConnectedClientsIds)
+        {
+            if (playerPausedDictionary.ContainsKey(clientId) && playerPausedDictionary[clientId])
+            {
+                isPaused.Value = true;
+                return;
+            }
+        }
+        isPaused.Value = false;
+        return;
     }
     private void InputSystem_OnPauseAction(object sender, EventArgs e)
     {

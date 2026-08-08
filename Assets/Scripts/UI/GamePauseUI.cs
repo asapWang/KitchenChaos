@@ -21,17 +21,17 @@ public class GamePauseUI : MonoBehaviour
     private void Start()
     {
         //订阅暂停游戏事件
-        GameManager.Instance.OnPauseGame += GameManager_OnPauseGame;
+        GameManager.Instance.OnLocalPauseGame += GameManager_OnLocalPauseGame;
         //订阅恢复游戏事件
-        GameManager.Instance.OnResumeGame += GameManager_OnResumeGame;
+        GameManager.Instance.OnLocalUnpauseGame += GameManager_OnLocalUnpauseGame;
         
         Hide();
     }
-    private void GameManager_OnPauseGame(object sender, EventArgs e)
+    private void GameManager_OnLocalPauseGame(object sender, EventArgs e)
     {
         Show();
     }
-    private void GameManager_OnResumeGame(object sender, EventArgs e)
+    private void GameManager_OnLocalUnpauseGame(object sender, EventArgs e)
     {
         Hide();
     }
