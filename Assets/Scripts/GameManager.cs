@@ -40,6 +40,8 @@ public class GameManager : NetworkBehaviour
     private Dictionary<ulong, bool> playerReadyDictionary; 
     //字典存储每个玩家是否pause
     private Dictionary<ulong, bool> playerPausedDictionary;
+    //判断是否要检查一遍各玩家暂没暂停
+    private bool autoTestAllPlayersPaused = false;
     private void Awake()
     {
         Instance = this;
@@ -51,12 +53,16 @@ public class GameManager : NetworkBehaviour
         InputSystem.Instance.OnPauseAction += InputSystem_OnPauseAction;
         //当玩家按下交互键时，开始游戏
         InputSystem.Instance.OnInteractAction += InputSystem_OnInteractAction;
-        
     }
     public override void OnNetworkSpawn()
     {
         state.OnValueChanged += State_OnValueChanged; 
         isPaused.OnValueChanged += IsPaused_OnValueChanged;
+        //当玩家断开连接时，重新检查所有玩家是否暂停游戏,防止玩家暂停状态下退出游戏，导致其他玩家无法恢复游戏
+        if (IsServer)
+        {
+            NetworkManager.Singleton.OnClientDisconnectCallback += NetworkManager_OnClientDisconnectCallback;
+        }
     }
     private void State_OnValueChanged(State previousValue, State newValue)
     {
@@ -75,6 +81,11 @@ public class GameManager : NetworkBehaviour
             Time.timeScale = 1;
             OnMultiplayerUnpauseGame?.Invoke(this, EventArgs.Empty);
         }
+    }
+    //不直接调用TestAllPlayersPaused()，而是设置一个标志位，在LateUpdate中调用TestAllPlayersPaused()，因为这个方法执行时玩家还没有被销毁
+    private void NetworkManager_OnClientDisconnectCallback(ulong clientId)
+    {
+        autoTestAllPlayersPaused = true;
     }
     private void Update()
     {
@@ -102,6 +113,19 @@ public class GameManager : NetworkBehaviour
                 break;
             case State.over:
                 break;
+        }
+    }
+    private void LateUpdate()
+    {
+        if (NetworkManager.Singleton == null ||
+            NetworkManager.Singleton.ShutdownInProgress)
+        {
+            return;
+        }
+        if (autoTestAllPlayersPaused)
+        {
+            TestAllPlayersPaused();
+            autoTestAllPlayersPaused = false;
         }
     }
     private void InputSystem_OnInteractAction(object sender, EventArgs e)

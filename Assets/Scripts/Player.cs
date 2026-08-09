@@ -37,6 +37,26 @@ public class Player : NetworkBehaviour, IGetKitchenObject
             OnPlayerSpawned?.Invoke(this, EventArgs.Empty);
         }
         transform.position = spawnPositionList[(int)OwnerClientId];
+        //玩家退出游戏，如果玩家手上有物品，则销毁物品
+        if (IsServer)
+        {
+            NetworkManager.Singleton.OnClientDisconnectCallback += NetworkManager_OnClientDisconnectCallback;
+        }
+    }
+    private void NetworkManager_OnClientDisconnectCallback(ulong clientId)
+    {
+         // 整个服务器正在关闭，不需要逐个清理玩家物品
+        if (NetworkManager.Singleton == null ||
+            NetworkManager.Singleton.ShutdownInProgress)
+        {   
+            return;
+        }
+
+        // 只有普通Client掉线时，才清理他遗留且仍Spawn的物品
+        if (clientId == OwnerClientId && HasKitchenObject())
+        {
+            KitchenObject.DestroyKitchenObject(GetKitchenObject());
+        }
     }
     private void Start()
     {
