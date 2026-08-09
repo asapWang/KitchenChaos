@@ -9,6 +9,30 @@ public class GameMultiplayer : NetworkBehaviour
     {
         Instance = this;
     }
+    //
+    public void StartHost()
+    {
+        NetworkManager.Singleton.ConnectionApprovalCallback += NetworkManager_ConnectionApprovalCallback;
+        NetworkManager.Singleton.StartHost();
+    }
+    private void NetworkManager_ConnectionApprovalCallback(NetworkManager.ConnectionApprovalRequest request, NetworkManager.ConnectionApprovalResponse response)
+    {
+        //如果游戏状态是Waiting，允许玩家加入游戏，否则拒绝玩家加入游戏
+        if (GameManager.Instance.IsWaiting())
+        {
+            response.Approved = true;
+            //network manager组件勾选connection approval后，必须设置CreatePlayerObject为true，否则玩家加入游戏后不会自动生成Player实例
+            response.CreatePlayerObject = true;
+        }
+        else
+        {
+            response.Approved = false;
+        }
+    }
+    public void StartClient()
+    {
+        NetworkManager.Singleton.StartClient();
+    }
     
     //KitchenObject脚本调用这个方法继而调用ServerRpc来生成KitchenObject实例并同步
     public void SpawnKitchenObject(KitchenObjectSO kitchenObjectSO, IGetKitchenObject iKitchenObjectParent)

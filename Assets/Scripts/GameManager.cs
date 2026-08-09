@@ -170,6 +170,11 @@ public class GameManager : NetworkBehaviour
     {
         return state.Value == State.countingDown;
     }
+    //判断游戏是否Waiting
+    public bool IsWaiting()
+    {
+        return state.Value == State.waiting;
+    }
     //判断游戏是否Over
     public bool IsOver()
     {
