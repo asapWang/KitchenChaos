@@ -1,13 +1,20 @@
 using Unity.Netcode;
 using UnityEngine;
+using UnityEngine.SceneManagement;
+using System;
 
 public class GameMultiplayer : NetworkBehaviour
 {
     [SerializeField] private KitchenObjectListSO kitchenObjectListSO;
+    private const int MAX_PLAYERS_AMOUNT = 4;
     public static GameMultiplayer Instance { get; private set; }
+    //大厅里尝试加入游戏和加入游戏失败的事件
+    public EventHandler OnTryingToJoinGame;
+    public EventHandler OnFailedToJoinGame;
     private void Awake()
     {
         Instance = this;
+        DontDestroyOnLoad(gameObject);
     }
     //
     public void StartHost()
@@ -17,21 +24,33 @@ public class GameMultiplayer : NetworkBehaviour
     }
     private void NetworkManager_ConnectionApprovalCallback(NetworkManager.ConnectionApprovalRequest request, NetworkManager.ConnectionApprovalResponse response)
     {
-        //如果游戏状态是Waiting，允许玩家加入游戏，否则拒绝玩家加入游戏
-        if (GameManager.Instance.IsWaiting())
-        {
-            response.Approved = true;
-            //network manager组件勾选connection approval后，必须设置CreatePlayerObject为true，否则玩家加入游戏后不会自动生成Player实例
-            response.CreatePlayerObject = true;
-        }
-        else
+        //如果不在CharacterSelectScene场景，拒绝连接
+        if (SceneManager.GetActiveScene().name != Loader.Scene.CharacterSelectScene.ToString())
         {
             response.Approved = false;
+            response.Reason = "Game has already started.";
+            return;
         }
+        //如果超过最大连接数，拒绝连接
+        if (NetworkManager.Singleton.ConnectedClients.Count >= MAX_PLAYERS_AMOUNT)
+        {
+            response.Approved = false;
+            response.Reason = "Server is full.";
+            return;
+        }
+        response.Approved = true;
     }
+
     public void StartClient()
     {
+        //尝试创建客户端，总是会触发OnTryingToJoinGame事件，客户端连接失败时会触发OnFailedToJoinGame事件
+        OnTryingToJoinGame?.Invoke(this, EventArgs.Empty);
+        NetworkManager.Singleton.OnClientDisconnectCallback += NetworkManager_OnClientDisconnectCallback;
         NetworkManager.Singleton.StartClient();
+    }
+    private void NetworkManager_OnClientDisconnectCallback(ulong clientId)
+    {
+        OnFailedToJoinGame?.Invoke(this, EventArgs.Empty);
     }
     
     //KitchenObject脚本调用这个方法继而调用ServerRpc来生成KitchenObject实例并同步

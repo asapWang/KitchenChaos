@@ -52,10 +52,13 @@ public class Player : NetworkBehaviour, IGetKitchenObject
             return;
         }
 
-        // 只有普通Client掉线时，才清理他遗留且仍Spawn的物品
-        if (clientId == OwnerClientId && HasKitchenObject())
+        KitchenObject kitchenObject = GetKitchenObject();
+
+        if (clientId == OwnerClientId &&
+            kitchenObject != null &&
+            kitchenObject.NetworkObject.IsSpawned)
         {
-            KitchenObject.DestroyKitchenObject(GetKitchenObject());
+            KitchenObject.DestroyKitchenObject(kitchenObject);
         }
     }
     private void Start()

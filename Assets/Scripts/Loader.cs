@@ -1,3 +1,4 @@
+using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -10,6 +11,8 @@ public static class Loader
         MainMenuScene,
         LoadingScene,
         GameScene,
+        LobbyScene,
+        CharacterSelectScene,
     }
     //定义目标加载场景
     private static Scene targetScene;
@@ -24,5 +27,10 @@ public static class Loader
     public static void LoaderCallBack()
     {
         SceneManager.LoadScene(targetScene.ToString());
+    }
+    //加载网络场景
+    public static void LoadNetwork(Scene scene)
+    {
+        NetworkManager.Singleton.SceneManager.LoadScene(scene.ToString(),LoadSceneMode.Single);
     }
 }

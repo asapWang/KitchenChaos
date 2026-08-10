@@ -2,6 +2,7 @@ using System;
 using UnityEngine;
 using System.Collections.Generic;
 using Unity.Netcode;
+using UnityEngine.SceneManagement;
 public class GameManager : NetworkBehaviour
 {
     public static GameManager Instance { get; private set; }
@@ -42,6 +43,7 @@ public class GameManager : NetworkBehaviour
     private Dictionary<ulong, bool> playerPausedDictionary;
     //判断是否要检查一遍各玩家暂没暂停
     private bool autoTestAllPlayersPaused = false;
+    [SerializeField] private Transform playerPrefabTransform;
     private void Awake()
     {
         Instance = this;
@@ -58,10 +60,13 @@ public class GameManager : NetworkBehaviour
     {
         state.OnValueChanged += State_OnValueChanged; 
         isPaused.OnValueChanged += IsPaused_OnValueChanged;
-        //当玩家断开连接时，重新检查所有玩家是否暂停游戏,防止玩家暂停状态下退出游戏，导致其他玩家无法恢复游戏
+        
         if (IsServer)
         {
+            //当玩家断开连接时，重新检查所有玩家是否暂停游戏,防止玩家暂停状态下退出游戏，导致其他玩家无法恢复游戏
             NetworkManager.Singleton.OnClientDisconnectCallback += NetworkManager_OnClientDisconnectCallback;
+            //当玩家加载完场景时，生成玩家对象
+            NetworkManager.Singleton.SceneManager.OnLoadEventCompleted += NetworkManager_OnLoadEventCompleted;
         }
     }
     private void State_OnValueChanged(State previousValue, State newValue)
@@ -86,6 +91,14 @@ public class GameManager : NetworkBehaviour
     private void NetworkManager_OnClientDisconnectCallback(ulong clientId)
     {
         autoTestAllPlayersPaused = true;
+    }
+    private void NetworkManager_OnLoadEventCompleted(string sceneName, LoadSceneMode loadSceneMode, List<ulong> clientsCompleted, List<ulong> clientsTimedOut)
+    {
+        foreach (ulong clientId in clientsCompleted)
+        {
+            Transform playerTransform = Instantiate(playerPrefabTransform);
+            playerTransform.GetComponent<NetworkObject>().SpawnAsPlayerObject(clientId, true);
+        }
     }
     private void Update()
     {

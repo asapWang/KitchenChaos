@@ -10,7 +10,7 @@ public class MainMenuUI : MonoBehaviour
         startButton.onClick.AddListener(() =>
         {
             //加载游戏场景
-            Loader.LoadScene(Loader.Scene.GameScene);
+            Loader.LoadScene(Loader.Scene.LobbyScene);
         });
         
         quitButton.onClick.AddListener(() => 
