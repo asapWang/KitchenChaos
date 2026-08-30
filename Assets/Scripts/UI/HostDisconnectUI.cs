@@ -30,4 +30,12 @@ public class HostDisconnectUI : MonoBehaviour
     {
         gameObject.SetActive(false);
     }
+    //角色选择场景和游戏场景都有这个ui，从角色选择场景进入游戏场景时，OnClientDisconnectCallback会触发两次，所以在销毁时取消订阅
+    private void OnDestroy()
+    {
+        if(NetworkManager.Singleton != null)
+        {
+            NetworkManager.Singleton.OnClientDisconnectCallback -= NetworkManager_OnClientDisconnectCallback;
+        }
+    }
 }

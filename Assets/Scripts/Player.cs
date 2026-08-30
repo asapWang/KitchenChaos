@@ -12,6 +12,7 @@ public class Player : NetworkBehaviour, IGetKitchenObject
     [SerializeField] private LayerMask collisionLayerMask;
     [SerializeField] private Transform playerHandPosition;
     [SerializeField] private List<Vector3> spawnPositionList;
+    [SerializeField] private PlayerSurface playerSurface;
     //isMoving只用于动画控制
     private bool isMoving;
     private Vector3 lastMoveDir;
@@ -36,7 +37,7 @@ public class Player : NetworkBehaviour, IGetKitchenObject
             LocalInstance = this;
             OnPlayerSpawned?.Invoke(this, EventArgs.Empty);
         }
-        transform.position = spawnPositionList[(int)OwnerClientId];
+        transform.position = spawnPositionList[GameMultiplayer.Instance.GetPlayerDataIndexFromClientId(OwnerClientId)];
         //玩家退出游戏，如果玩家手上有物品，则销毁物品
         if (IsServer)
         {
@@ -65,6 +66,8 @@ public class Player : NetworkBehaviour, IGetKitchenObject
     {
         InputSystem.Instance.OnInteractAction += InputSystem_OnInteractAction;
         InputSystem.Instance.OnInteractAlternativeAction += InputSystem_OnInteractAlternativeAction;
+        PlayerData playerData = GameMultiplayer.Instance.GetPlayerDataFromClientId(OwnerClientId);
+        playerSurface.SetPlayerColor(GameMultiplayer.Instance.GetPlayerColor(playerData.colorID));
     }
 
     private void InputSystem_OnInteractAction(object sender, System.EventArgs e)

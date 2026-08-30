@@ -1717,6 +1717,17 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   ShowTopMostFoldoutHeaderGroup: 1
   kitchenObjectListSO: {fileID: 11400000, guid: 7f8c8faa9241b274ca788adfe1fa9ebf, type: 2}
+  playerColorList:
+  - {r: 1, g: 0, b: 0, a: 1}
+  - {r: 0, g: 0.74509805, b: 1, a: 1}
+  - {r: 0, g: 1, b: 0.14243364, a: 1}
+  - {r: 1, g: 0.8524879, b: 0, a: 1}
+  - {r: 0.9547169, g: 0.5686275, b: 0.80086035, a: 1}
+  - {r: 0.6788149, g: 0, b: 1, a: 1}
+  - {r: 0.554717, g: 0.554717, b: 0.554717, a: 1}
+  - {r: 0, g: 0, b: 0, a: 1}
+  - {r: 0.18613195, g: 0, b: 1, a: 1}
+  - {r: 0.9169811, g: 0.91179067, b: 0.91179067, a: 1}
 --- !u!114 &1679323984
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1967,6 +1978,37 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1904569841
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1904569842}
+  m_Layer: 0
+  m_Name: GameLobby
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1904569842
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1904569841}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 1009.4437, y: 518.1107, z: 4.106388}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1946374010
 GameObject:
   m_ObjectHideFlags: 0
@@ -2052,3 +2094,4 @@ SceneRoots:
   - {fileID: 832351423}
   - {fileID: 1829565457}
   - {fileID: 1679323985}
+  - {fileID: 1904569842}
