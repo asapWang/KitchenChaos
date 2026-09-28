@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 using Unity.Netcode;
+using TMPro;
 
 public class CharacterSelectPlayer : MonoBehaviour
 {
@@ -8,6 +9,7 @@ public class CharacterSelectPlayer : MonoBehaviour
     [SerializeField] private GameObject readyText;
     [SerializeField] private PlayerSurface playerSurface;
     [SerializeField] private Button kickButton;
+    [SerializeField] private TMP_Text playerNameText;
     private void Awake()
     {
         kickButton.onClick.AddListener(() =>
@@ -15,6 +17,7 @@ public class CharacterSelectPlayer : MonoBehaviour
             //服务端踢掉玩家
             PlayerData playerData = GameMultiplayer.Instance.GetPlayerDataFromIndex(playerIndex);
             GameMultiplayer.Instance.KickPlayer(playerData.clientId);
+            GameLobby.Instance.KickPlayer(playerData.playerId.ToString());
         });
     }
     private void Start()
@@ -45,6 +48,8 @@ public class CharacterSelectPlayer : MonoBehaviour
             readyText.SetActive(CharacterSelectReady.Instance.IsPlayerReady(playerData.clientId));
             //根据颜色ID设置玩家颜色
             playerSurface.SetPlayerColor(GameMultiplayer.Instance.GetPlayerColor(playerData.colorID));
+            //根据玩家名字更新UI
+            playerNameText.text = playerData.playerName.ToString();
         }
         else
         {

@@ -41,6 +41,7 @@ public class CharacterSelectReady : NetworkBehaviour
         if (allPlayersReady)
         {
             Loader.LoadNetwork(Loader.Scene.GameScene);
+            GameLobby.Instance.DeleteLobby();
         }
     }
     //让每个客户端都知道其他玩家是否准备好

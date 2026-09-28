@@ -1,6 +1,7 @@
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using Unity.Services.Authentication;
 using System;
 using System.Collections.Generic;
 
@@ -9,9 +10,12 @@ public class GameMultiplayer : NetworkBehaviour
     [SerializeField] private KitchenObjectListSO kitchenObjectListSO;
     //角色选择颜色
     [SerializeField] private List<Color> playerColorList;
-    private const int MAX_PLAYERS_AMOUNT = 4;
+    //键名，用于playerprefs存储玩家名字
+    private const string PLAYER_PREFS_PLAYER_NAME = "PlayerName";
+    public const int MAX_PLAYERS_AMOUNT = 4;
     //记录所有客户端的PlayerData数据
     private NetworkList<PlayerData> playerDataNetworkList;
+    private string playerName;
     public static GameMultiplayer Instance { get; private set; }
     //大厅里尝试加入游戏和加入游戏失败的事件
     public EventHandler OnTryingToJoinGame;
@@ -23,6 +27,7 @@ public class GameMultiplayer : NetworkBehaviour
         Instance = this;
         playerDataNetworkList = new NetworkList<PlayerData>();
         playerDataNetworkList.OnListChanged += PlayerDataNetworkList_OnListChanged;
+        playerName = PlayerPrefs.GetString(PLAYER_PREFS_PLAYER_NAME, "Player" + UnityEngine.Random.Range(1000, 9999));
         DontDestroyOnLoad(gameObject);
     }
     private void PlayerDataNetworkList_OnListChanged(NetworkListEvent<PlayerData> changeEvent)
@@ -33,9 +38,13 @@ public class GameMultiplayer : NetworkBehaviour
     public void StartHost()
     {
         NetworkManager.Singleton.ConnectionApprovalCallback += NetworkManager_ConnectionApprovalCallback;
+        //NetworkManager.Singleton.OnClientConnectedCallback，在客户端：当本地客户端连接到服务器时触发；在服务端：当有客户端连接到服务器时就会触发
+        //客户端连上时，主机端先触发OnClientConnectedCallback，然后客户端再触发
         NetworkManager.Singleton.OnClientConnectedCallback += NetworkManager_OnClientConnectedCallback;
         NetworkManager.Singleton.OnClientDisconnectCallback += NetworkManager_Server_OnClientDisconnectCallback;
         NetworkManager.Singleton.StartHost();
+        SetPlayerNameServerRpc(playerName);
+        SetPlayerIdServerRpc(AuthenticationService.Instance.PlayerId);
     }
     private void NetworkManager_ConnectionApprovalCallback(NetworkManager.ConnectionApprovalRequest request, NetworkManager.ConnectionApprovalResponse response)
     {
@@ -75,13 +84,42 @@ public class GameMultiplayer : NetworkBehaviour
         //尝试创建客户端，总是会触发OnTryingToJoinGame事件，客户端连接失败时会触发OnFailedToJoinGame事件
         OnTryingToJoinGame?.Invoke(this, EventArgs.Empty);
         NetworkManager.Singleton.OnClientDisconnectCallback += NetworkManager_Client_OnClientDisconnectCallback;
+        NetworkManager.Singleton.OnClientConnectedCallback += NetworkManager_Client_OnClientConnectedCallback;
         NetworkManager.Singleton.StartClient();
     }
     private void NetworkManager_Client_OnClientDisconnectCallback(ulong clientId)
     {
         OnFailedToJoinGame?.Invoke(this, EventArgs.Empty);
     }
-    
+    private void NetworkManager_Client_OnClientConnectedCallback(ulong clientId)
+    {
+        SetPlayerNameServerRpc(playerName);
+        SetPlayerIdServerRpc(AuthenticationService.Instance.PlayerId);
+    }
+    //将本地playerName写入playerData
+    [ServerRpc(RequireOwnership = false)]
+    public void SetPlayerNameServerRpc(string name, ServerRpcParams serverRpcParams = default)
+    {
+        //获取调用这个ServerRpc的客户端的PlayerData
+        PlayerData playerData = GetPlayerDataFromClientId(serverRpcParams.Receive.SenderClientId);
+        //修改PlayerData的playerName
+        playerData.playerName = name;
+        //把修改后的PlayerData写回playerDataNetworkList
+        playerDataNetworkList[GetPlayerDataIndexFromClientId(serverRpcParams.Receive.SenderClientId)] = playerData; 
+    }
+    //将lobby的PlayerId写入playerData
+    [ServerRpc(RequireOwnership = false)]
+    public void SetPlayerIdServerRpc(string playerId, ServerRpcParams serverRpcParams = default)
+    {
+        //获取调用这个ServerRpc的客户端的PlayerData
+        PlayerData playerData = GetPlayerDataFromClientId(serverRpcParams.Receive.SenderClientId);
+        //修改PlayerData的playerId
+        playerData.playerId = playerId;
+        //把修改后的PlayerData写回playerDataNetworkList
+        playerDataNetworkList[GetPlayerDataIndexFromClientId(serverRpcParams.Receive.SenderClientId)] = playerData; 
+    }
+
+
     //KitchenObject脚本调用这个方法继而调用ServerRpc来生成KitchenObject实例并同步
     public void SpawnKitchenObject(KitchenObjectSO kitchenObjectSO, IGetKitchenObject iKitchenObjectParent)
     {
@@ -146,6 +184,18 @@ public class GameMultiplayer : NetworkBehaviour
         playerData.colorID = colorID;
         //把修改后的PlayerData写回playerDataNetworkList
         playerDataNetworkList[GetPlayerDataIndexFromClientId(serverRpcParams.Receive.SenderClientId)] = playerData; 
+    }
+
+    //获取玩家名字
+    public string GetPlayerName()
+    {
+        return playerName;
+    }
+    //设置玩家名字
+    public void SetPlayerName(string name)
+    {
+        playerName = name;
+        PlayerPrefs.SetString(PLAYER_PREFS_PLAYER_NAME, name);
     }
     
 
