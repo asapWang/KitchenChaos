@@ -65,9 +65,14 @@ public class LobbyMessageUI : MonoBehaviour
     {
         this.gameObject.SetActive(false);
     }
-    //此UI与networkManager的生命周期不同，所以在OnDestroy中取消订阅事件
+    
     private void OnDestroy()
     {
         GameMultiplayer.Instance.OnFailedToJoinGame -= GameMultiplayer_OnFailedToJoinGame;
+        GameLobby.Instance.onCreateLobbyStarted -= GameLobby_OnCreateLobbyStarted;
+        GameLobby.Instance.onCreateLobbyFailed -= GameLobby_OnCreateLobbyFailed;
+        GameLobby.Instance.onJoinLobbyStarted -= GameLobby_OnJoinLobbyStarted;
+        GameLobby.Instance.onJoinLobbyFailed -= GameLobby_OnJoinLobbyFailed;
+        GameLobby.Instance.onQuickJoinLobbyFailed -= GameLobby_OnQuickJoinLobbyFailed;
     }
 }

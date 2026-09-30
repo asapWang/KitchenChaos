@@ -3,8 +3,15 @@ using Unity.Services.Lobbies.Models;
 using Unity.Services.Lobbies;
 using Unity.Services.Core;
 using Unity.Services.Authentication;
+using UnityEngine.SceneManagement;
 using System;
 using System.Collections.Generic;
+using Unity.Services.Relay.Models;
+using Unity.Services.Relay;
+using System.Threading.Tasks;
+using Unity.Netcode;
+using Unity.Netcode.Transports.UTP;
+
 
 public class GameLobby : MonoBehaviour
 {
@@ -21,6 +28,7 @@ public class GameLobby : MonoBehaviour
     {
         public List<Lobby> lobbyList;
     }
+    private const string KEY_RELAY_JOIN_CODE = "RelayJoinCode";
     private Lobby joinedLobby;
     private float heartbeatTimer=15f;
     private float listLobbyTimer;
@@ -35,7 +43,7 @@ public class GameLobby : MonoBehaviour
     private void Update()
     {
         HandleHeartbeat();
-        UpdateLobbyList();
+        HandlePeriodUpdateLobbyList();
     }
 
     //发送heartbeat保活
@@ -52,10 +60,11 @@ public class GameLobby : MonoBehaviour
         }
     }
     //固定时间刷新lobby列表
-    private void UpdateLobbyList()
+    private void HandlePeriodUpdateLobbyList()
     {
         //因为这个函数在update里调用，所以要先等已经登录完成，否则用不了listLobbies()里的api
-        if(joinedLobby == null && AuthenticationService.Instance.IsSignedIn)
+        //进入游戏场景后，joinedLobby为null，但不再需要刷新lobby列表
+        if(joinedLobby == null && AuthenticationService.Instance.IsSignedIn && SceneManager.GetActiveScene().name == Loader.Scene.LobbyScene.ToString())
         {
             listLobbyTimer -= Time.deltaTime;
             if (listLobbyTimer <= 0f)
@@ -63,6 +72,35 @@ public class GameLobby : MonoBehaviour
                 listLobbyTimer = 5f;
                 ListLobbies();
             }
+        }
+    }
+
+    //创建Relay
+    private async Task<Allocation> AllocateRelay()
+    {
+        try
+        {
+            Allocation allocation = await RelayService.Instance.CreateAllocationAsync(GameMultiplayer.MAX_PLAYERS_AMOUNT - 1);
+            return allocation;
+        }
+        catch (Exception e)
+        {
+            Debug.LogError(e.Message);
+            return default;
+        }
+    }
+    //获取Relay join code
+    private async Task<string> GetRelayJoinCode(Allocation allocation)
+    {
+        try
+        {
+            string joinCode = await RelayService.Instance.GetJoinCodeAsync(allocation.AllocationId);
+            return joinCode;
+        }
+        catch (Exception e)
+        {
+            Debug.LogError(e.Message);
+            return default;
         }
         
     }
@@ -101,6 +139,18 @@ public class GameLobby : MonoBehaviour
             {
                 IsPrivate = isPrivate
             });
+            //必须在NGO创建主机前先创建Relay
+            Allocation allocation = await AllocateRelay();
+            string relayJoinCode = await GetRelayJoinCode(allocation);
+            NetworkManager.Singleton.GetComponent<UnityTransport>().SetRelayServerData(AllocationUtils.ToRelayServerData(allocation, "dtls"));
+            //把Relay join code存入lobby的Data里，方便客户端加入lobby后获取join code来连接Relay
+            joinedLobby = await LobbyService.Instance.UpdateLobbyAsync(joinedLobby.Id, new UpdateLobbyOptions
+            {
+                Data = new Dictionary<string, DataObject>
+                {
+                    { KEY_RELAY_JOIN_CODE, new DataObject(DataObject.VisibilityOptions.Member, relayJoinCode) }
+                }
+            });
             GameMultiplayer.Instance.StartHost();
             Loader.LoadNetwork(Loader.Scene.CharacterSelectScene);
         }
@@ -118,6 +168,11 @@ public class GameLobby : MonoBehaviour
         try
         {
             joinedLobby = await LobbyService.Instance.QuickJoinLobbyAsync();
+            //获取lobby里的Relay join code
+            string relayJoinCode = joinedLobby.Data[KEY_RELAY_JOIN_CODE].Value;
+            //通过join code加入Relay
+            JoinAllocation joinAllocation = await RelayService.Instance.JoinAllocationAsync(relayJoinCode);
+            NetworkManager.Singleton.GetComponent<UnityTransport>().SetRelayServerData(AllocationUtils.ToRelayServerData(joinAllocation, "dtls"));
             GameMultiplayer.Instance.StartClient();
         }
         catch (System.Exception e)
@@ -133,6 +188,11 @@ public class GameLobby : MonoBehaviour
         try
         {
             joinedLobby = await LobbyService.Instance.JoinLobbyByCodeAsync(lobbyCode);
+            //获取lobby里的Relay join code
+            string relayJoinCode = joinedLobby.Data[KEY_RELAY_JOIN_CODE].Value;
+            //通过join code加入Relay
+            JoinAllocation joinAllocation = await RelayService.Instance.JoinAllocationAsync(relayJoinCode);
+            NetworkManager.Singleton.GetComponent<UnityTransport>().SetRelayServerData(AllocationUtils.ToRelayServerData(joinAllocation, "dtls"));
             GameMultiplayer.Instance.StartClient();
         }
         catch (System.Exception e)
@@ -148,6 +208,11 @@ public class GameLobby : MonoBehaviour
         try
         {
             joinedLobby = await LobbyService.Instance.JoinLobbyByIdAsync(lobbyId);
+            //获取lobby里的Relay join code
+            string relayJoinCode = joinedLobby.Data[KEY_RELAY_JOIN_CODE].Value;
+            //通过join code加入Relay
+            JoinAllocation joinAllocation = await RelayService.Instance.JoinAllocationAsync(relayJoinCode);
+            NetworkManager.Singleton.GetComponent<UnityTransport>().SetRelayServerData(AllocationUtils.ToRelayServerData(joinAllocation, "dtls"));
             GameMultiplayer.Instance.StartClient();
         }
         catch (System.Exception e)
@@ -164,7 +229,7 @@ public class GameLobby : MonoBehaviour
             //添加过滤条件，剩余人数大于0
             QueryLobbiesOptions options = new QueryLobbiesOptions
             {
-                Filters = new System.Collections.Generic.List<QueryFilter>
+                Filters = new List<QueryFilter>
                 {
                     new QueryFilter(QueryFilter.FieldOptions.AvailableSlots, "0", QueryFilter.OpOptions.GT)
                 }
