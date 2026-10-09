@@ -60,6 +60,7 @@ public class LobbyMessageUI : MonoBehaviour
     private void Show()
     {
         this.gameObject.SetActive(true);
+        backButton.Select();
     }
     private void Hide()
     {

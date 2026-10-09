@@ -798,7 +798,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7ef80d80270e4f642abf5efadcbb9c1c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  startButton: {fileID: 1528241291}
+  multiplayerButton: {fileID: 1528241291}
+  singlePlayerButton: {fileID: 2001692954}
   quitButton: {fileID: 877880137}
 --- !u!1 &877880134
 GameObject:

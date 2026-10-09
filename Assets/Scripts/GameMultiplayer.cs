@@ -16,7 +16,7 @@ public class GameMultiplayer : NetworkBehaviour
     //记录所有客户端的PlayerData数据
     private NetworkList<PlayerData> playerDataNetworkList;
     private string playerName;
-    public static bool IsMultiplayer;
+    public static bool IsMultiplayer = true;
     public static GameMultiplayer Instance { get; private set; }
     //大厅里尝试加入游戏和加入游戏失败的事件
     public EventHandler OnTryingToJoinGame;
