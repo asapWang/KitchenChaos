@@ -3,13 +3,21 @@ using UnityEngine.UI;
 
 public class MainMenuUI : MonoBehaviour
 {
-    [SerializeField] private Button startButton;
+    [SerializeField] private Button multiplayerButton;
+    [SerializeField] private Button singlePlayerButton;
     [SerializeField] private Button quitButton;
     private void Awake()
     {
-        startButton.onClick.AddListener(() =>
+        multiplayerButton.onClick.AddListener(() =>
         {
-            //加载游戏场景
+            GameMultiplayer.IsMultiplayer = true;
+            //加载大厅场景
+            Loader.LoadScene(Loader.Scene.LobbyScene);
+        });
+        singlePlayerButton.onClick.AddListener(() =>
+        {
+            GameMultiplayer.IsMultiplayer = false;
+            //加载大厅场景
             Loader.LoadScene(Loader.Scene.LobbyScene);
         });
         

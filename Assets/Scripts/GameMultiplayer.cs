@@ -16,6 +16,7 @@ public class GameMultiplayer : NetworkBehaviour
     //记录所有客户端的PlayerData数据
     private NetworkList<PlayerData> playerDataNetworkList;
     private string playerName;
+    public static bool IsMultiplayer;
     public static GameMultiplayer Instance { get; private set; }
     //大厅里尝试加入游戏和加入游戏失败的事件
     public EventHandler OnTryingToJoinGame;
@@ -29,6 +30,15 @@ public class GameMultiplayer : NetworkBehaviour
         playerDataNetworkList.OnListChanged += PlayerDataNetworkList_OnListChanged;
         playerName = PlayerPrefs.GetString(PLAYER_PREFS_PLAYER_NAME, "Player" + UnityEngine.Random.Range(1000, 9999));
         DontDestroyOnLoad(gameObject);
+    }
+    //如果是单机模式，直接启动主机并加载游戏场景
+    private void Start()
+    {
+        if (!IsMultiplayer)
+        {
+            StartHost();
+            Loader.LoadNetwork(Loader.Scene.GameScene);
+        }
     }
     private void PlayerDataNetworkList_OnListChanged(NetworkListEvent<PlayerData> changeEvent)
     {
