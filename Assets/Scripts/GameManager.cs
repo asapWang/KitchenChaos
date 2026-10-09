@@ -34,8 +34,8 @@ public class GameManager : NetworkBehaviour
     //时间变量
     //同步时间
     private NetworkVariable<float> countingDownTime = new NetworkVariable<float>(3f);
-    private NetworkVariable<float> playingTime = new NetworkVariable<float>(10f);
-    private float playingTimeMax = 10f;
+    private NetworkVariable<float> playingTime = new NetworkVariable<float>(300f);
+    private float playingTimeMax = 300f;
     private bool isPlayerReady = false;
     //字典用于存储每个玩家的准备状态，只让Server修改;`ulong` 是 C# 的 64 位无符号整数,是ClientId的类型
     private Dictionary<ulong, bool> playerReadyDictionary; 

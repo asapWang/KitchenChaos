@@ -130,14 +130,20 @@ public class GameMultiplayer : NetworkBehaviour
     //RPC方法的参数不能是引用类型，所以传递KitchenObjectSO的索引和结构体NetworkObjectReference，此结构体可以接受NetworkObject作为参数，并在RPC方法中通过TryGet方法获取NetworkObject
     public void SpawnKitchenObjectServerRpc(int kitchenObjectSOIndex, NetworkObjectReference ikitchenObjectParentNetworkObjectReference)
     {
+        //通过NetworkObjectReference获取NetworkObject，再通过GetComponent获取IGetKitchenObject类型的父对象
+        ikitchenObjectParentNetworkObjectReference.TryGet(out NetworkObject ikitchenObjectParentNetworkObject);
+        IGetKitchenObject ikitchenObjectParent = ikitchenObjectParentNetworkObject.GetComponent<IGetKitchenObject>();
+        //服务器端状态检验
+        if (ikitchenObjectParent.HasKitchenObject())
+        {
+            return;
+        }
         //Instantiate会生成实例，并把第一个transform变成第二个transform的子物体，返回值是第一个transform，也可以不指定父对象
         Transform kitchenObjectTransform = Instantiate(GetKitchenObjectSOFromIndex(kitchenObjectSOIndex).kitchenObjectPrefab.transform);
         //Spawn方法会在所有客户端生成实例
         KitchenObject kitchenObject = kitchenObjectTransform.GetComponent<KitchenObject>();
         kitchenObject.NetworkObject.Spawn();
-        //通过NetworkObjectReference获取NetworkObject，再通过GetComponent获取IGetKitchenObject类型的父对象
-        ikitchenObjectParentNetworkObjectReference.TryGet(out NetworkObject ikitchenObjectParentNetworkObject);
-        IGetKitchenObject ikitchenObjectParent = ikitchenObjectParentNetworkObject.GetComponent<IGetKitchenObject>();
+        
         kitchenObject.SetOwner(ikitchenObjectParent);
     }
 
@@ -150,6 +156,11 @@ public class GameMultiplayer : NetworkBehaviour
     public void DestroyKitchenObjectServerRpc(NetworkObjectReference kitchenObjectNetworkObjectReference)
     {
         kitchenObjectNetworkObjectReference.TryGet(out NetworkObject kitchenObjectNetworkObject);
+        //服务器端状态检验
+        if (kitchenObjectNetworkObject == null)
+        {
+            return;
+        }   
         KitchenObject kitchenObject = kitchenObjectNetworkObject.GetComponent<KitchenObject>();
         //销毁KitchenObject实例前，先清楚父对象对kitchenObject的引用
         ClearKitchenObjectClientRpc(kitchenObject.NetworkObject);
