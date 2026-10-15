@@ -1,0 +1,9 @@
+{
+    "name": "KitchenChaos.EditorTests",
+    "includePlatforms": [
+        "Editor"
+    ],
+    "optionalUnityReferences": [
+        "TestAssemblies"
+    ]
+}

@@ -32,12 +32,21 @@ public class GameLobby : MonoBehaviour
     private Lobby joinedLobby;
     private float heartbeatTimer=15f;
     private float listLobbyTimer;
-    private void Awake()
+    private Task servicesReadyTask;
+    private async void Awake()
     {
         Instance = this;
         //跨场景不销毁
         DontDestroyOnLoad(gameObject);
-        InitializeUnityServices();
+        try
+        {
+            await EnsureServicesReadyAsync();
+            Debug.Log("UGS 认证就绪");
+        }
+        catch (Exception e)
+        {
+            Debug.LogException(e);
+        }
     }
 
     private void Update()
@@ -62,9 +71,12 @@ public class GameLobby : MonoBehaviour
     //固定时间刷新lobby列表
     private void HandlePeriodUpdateLobbyList()
     {
-        //因为这个函数在update里调用，所以要先等已经登录完成，否则用不了listLobbies()里的api
+        //因为这个函数在update里调用，所以要先等初始化和登录完成，否则用不了listLobbies()里的api
         //进入游戏场景后，joinedLobby为null，但不再需要刷新lobby列表
-        if(joinedLobby == null && AuthenticationService.Instance.IsSignedIn && SceneManager.GetActiveScene().name == Loader.Scene.LobbyScene.ToString())
+        if(joinedLobby == null &&
+        UnityServices.State == ServicesInitializationState.Initialized &&
+        AuthenticationService.Instance.IsAuthorized &&
+        SceneManager.GetActiveScene().name == Loader.Scene.LobbyScene.ToString())
         {
             listLobbyTimer -= Time.deltaTime;
             if (listLobbyTimer <= 0f)
@@ -105,14 +117,17 @@ public class GameLobby : MonoBehaviour
         
     }
 
-    //创建和加入lobby前，先启动Unity Services并登录
-    private async void InitializeUnityServices()
+    //创建和加入lobby前，先初始化Unity Services并登录
+    private async Task InitializeAndSignInAsync()
     {
-        //避免重复初始化
-        if (UnityServices.State == ServicesInitializationState.Initialized)
+        //判断是否初始化成功
+        if (UnityServices.State != ServicesInitializationState.Initialized)
         {
-            return;
+            InitializationOptions options = new InitializationOptions();
+            options.SetProfile(UnityEngine.Random.Range(0, 100000).ToString());
+            await UnityServices.InitializeAsync(options);
         }
+
         //下面这个options是给初始化配置对象
         //匿名登录不等于每次都创建新PlayerId，两个本地游戏实例若使用默认 Profile，且共享同一份本地认证缓存，就会读到同一个匿名 Session Token，因此登录成相同的 PlayerId
         //SetProfile() 不会直接设置云端 PlayerId，也不会自己登录；它只是先切换本地凭据的存储范围。之后的匿名登录才会从该范围恢复或创建身份。
@@ -123,10 +138,12 @@ public class GameLobby : MonoBehaviour
         ├─ 找到该 Profile 旧 Token：恢复原来的匿名玩家和 PlayerId
         └─ 找不到 Token：创建新的匿名玩家和新的 PlayerId
         */
-        InitializationOptions options = new InitializationOptions();
-        options.SetProfile(UnityEngine.Random.Range(0, 100000).ToString());
-        await UnityServices.InitializeAsync(options);
-        await AuthenticationService.Instance.SignInAnonymouslyAsync();
+        
+        //判断是否登录成功，登录与初始化不是同一回事，初始化只是让Unity Services的SDK可以使用，而登录是获取PlayerId和Session Token
+        if (!AuthenticationService.Instance.IsAuthorized)
+        {
+            await AuthenticationService.Instance.SignInAnonymouslyAsync();
+        }
     }
     //创建lobby
     public async void CreateLobby(string lobbyName, bool isPrivate)
@@ -134,6 +151,7 @@ public class GameLobby : MonoBehaviour
         onCreateLobbyStarted?.Invoke(this, EventArgs.Empty);
         try
         {
+            await EnsureServicesReadyAsync();
             //API 的设计习惯：必填、最核心的数据用方法参数；可选或会不断扩展的配置放进 Options 对象。
             joinedLobby = await LobbyService.Instance.CreateLobbyAsync(lobbyName, GameMultiplayer.MAX_PLAYERS_AMOUNT, new CreateLobbyOptions
             {
@@ -167,6 +185,7 @@ public class GameLobby : MonoBehaviour
         onJoinLobbyStarted?.Invoke(this, EventArgs.Empty);
         try
         {
+            await EnsureServicesReadyAsync();
             joinedLobby = await LobbyService.Instance.QuickJoinLobbyAsync();
             //获取lobby里的Relay join code
             string relayJoinCode = joinedLobby.Data[KEY_RELAY_JOIN_CODE].Value;
@@ -187,6 +206,7 @@ public class GameLobby : MonoBehaviour
         onJoinLobbyStarted?.Invoke(this, EventArgs.Empty);
         try
         {
+            await EnsureServicesReadyAsync();
             joinedLobby = await LobbyService.Instance.JoinLobbyByCodeAsync(lobbyCode);
             //获取lobby里的Relay join code
             string relayJoinCode = joinedLobby.Data[KEY_RELAY_JOIN_CODE].Value;
@@ -207,6 +227,7 @@ public class GameLobby : MonoBehaviour
         onJoinLobbyStarted?.Invoke(this, EventArgs.Empty);
         try
         {
+            await EnsureServicesReadyAsync();
             joinedLobby = await LobbyService.Instance.JoinLobbyByIdAsync(lobbyId);
             //获取lobby里的Relay join code
             string relayJoinCode = joinedLobby.Data[KEY_RELAY_JOIN_CODE].Value;
@@ -311,5 +332,22 @@ public class GameLobby : MonoBehaviour
     public bool IsHost()
     {
         return joinedLobby != null && joinedLobby.HostId == AuthenticationService.Instance.PlayerId;
+    }
+    //共享认证任务
+    /*逻辑是：
+    - 没有任务：启动认证。
+    - 任务未结束：返回正在执行的任务。
+    - 任务已经结束：重新检查初始化和授权；需要时重试。
+    成功后再次调用，也不会必然重复登录，因为内部已有 IsAuthorized 检查
+    */
+    // 可替换执行操作以便测试；正常调用仍使用真实 UGS 认证。
+    private Task EnsureServicesReadyAsync(Func<Task> initializeAndSignIn = null)
+    {
+        if (servicesReadyTask == null || servicesReadyTask.IsCompleted)
+        {
+            servicesReadyTask = (initializeAndSignIn ?? InitializeAndSignInAsync)();
+        }
+
+        return servicesReadyTask;
     }
 }
