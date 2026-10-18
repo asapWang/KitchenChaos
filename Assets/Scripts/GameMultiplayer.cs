@@ -16,6 +16,8 @@ public class GameMultiplayer : NetworkBehaviour
     //记录所有客户端的PlayerData数据
     private NetworkList<PlayerData> playerDataNetworkList;
     private string playerName;
+    // 保存实际订阅的对象，清理时不依赖可能已经变化的 Singleton。
+    private NetworkManager callbackNetworkManager;
     public static bool IsMultiplayer = true;
     public static GameMultiplayer Instance { get; private set; }
     //大厅里尝试加入游戏和加入游戏失败的事件
@@ -47,12 +49,29 @@ public class GameMultiplayer : NetworkBehaviour
     //
     public void StartHost()
     {
-        NetworkManager.Singleton.ConnectionApprovalCallback += NetworkManager_ConnectionApprovalCallback;
-        //NetworkManager.Singleton.OnClientConnectedCallback，在客户端：当本地客户端连接到服务器时触发；在服务端：当有客户端连接到服务器时就会触发
-        //客户端连上时，主机端先触发OnClientConnectedCallback，然后客户端再触发
-        NetworkManager.Singleton.OnClientConnectedCallback += NetworkManager_OnClientConnectedCallback;
-        NetworkManager.Singleton.OnClientDisconnectCallback += NetworkManager_Server_OnClientDisconnectCallback;
-        NetworkManager.Singleton.StartHost();
+        EnsureNetworkCanStart();
+        PrepareNetworkCallbacks();
+        try
+        {
+            // 先移除自己的旧订阅，再添加，避免重试时重复注册。
+            callbackNetworkManager.ConnectionApprovalCallback -= NetworkManager_ConnectionApprovalCallback;
+            callbackNetworkManager.ConnectionApprovalCallback += NetworkManager_ConnectionApprovalCallback;
+            // 服务端会收到各客户端的连接事件，客户端只处理本地连接事件。
+            callbackNetworkManager.OnClientConnectedCallback -= NetworkManager_OnClientConnectedCallback;
+            callbackNetworkManager.OnClientConnectedCallback += NetworkManager_OnClientConnectedCallback;
+            callbackNetworkManager.OnClientDisconnectCallback -= NetworkManager_Server_OnClientDisconnectCallback;
+            callbackNetworkManager.OnClientDisconnectCallback += NetworkManager_Server_OnClientDisconnectCallback;
+            if (!callbackNetworkManager.StartHost())
+            {
+                throw new InvalidOperationException("Failed to start host.");
+            }
+        }
+        catch
+        {
+            UnregisterNetworkCallbacks();
+            throw;
+        }
+        // 启动已成功，后续 RPC 失败不应被当成启动失败而移除会话回调。
         SetPlayerNameServerRpc(playerName);
         SetPlayerIdServerRpc(AuthenticationService.Instance.PlayerId);
     }
@@ -91,12 +110,88 @@ public class GameMultiplayer : NetworkBehaviour
 
     public void StartClient()
     {
-        //尝试创建客户端，总是会触发OnTryingToJoinGame事件，客户端连接失败时会触发OnFailedToJoinGame事件
+        EnsureNetworkCanStart();
+        // 通过启动检查后才通知 UI；重复启动不能影响正在进行的连接。
         OnTryingToJoinGame?.Invoke(this, EventArgs.Empty);
-        NetworkManager.Singleton.OnClientDisconnectCallback += NetworkManager_Client_OnClientDisconnectCallback;
-        NetworkManager.Singleton.OnClientConnectedCallback += NetworkManager_Client_OnClientConnectedCallback;
-        NetworkManager.Singleton.StartClient();
+        PrepareNetworkCallbacks();
+        try
+        {
+            callbackNetworkManager.OnClientDisconnectCallback -= NetworkManager_Client_OnClientDisconnectCallback;
+            callbackNetworkManager.OnClientDisconnectCallback += NetworkManager_Client_OnClientDisconnectCallback;
+            callbackNetworkManager.OnClientConnectedCallback -= NetworkManager_Client_OnClientConnectedCallback;
+            callbackNetworkManager.OnClientConnectedCallback += NetworkManager_Client_OnClientConnectedCallback;
+            if (!callbackNetworkManager.StartClient())
+            {
+                throw new InvalidOperationException("Failed to start client.");
+            }
+        }
+        catch
+        {
+            UnregisterNetworkCallbacks();
+            OnFailedToJoinGame?.Invoke(this, EventArgs.Empty);
+            throw;
+        }
     }
+
+    public void ShutdownNetwork()
+    {
+        NetworkManager manager = callbackNetworkManager != null
+            ? callbackNetworkManager
+            : NetworkManager.Singleton;
+
+        // 主动停止时先退订，避免把随后的断线回调当成加入失败。
+        UnregisterNetworkCallbacks();
+        if (manager != null)
+        {
+            // NGO 会在后续更新中完成关闭，这里只发起请求。
+            manager.Shutdown();
+        }
+    }
+
+    private void EnsureNetworkCanStart()
+    {
+        NetworkManager manager = NetworkManager.Singleton;
+        if (manager == null)
+        {
+            throw new InvalidOperationException("NetworkManager is not available.");
+        }
+        // Shutdown 不是立即完成的，角色状态尚未清空时也不能重启。
+        if (manager.IsListening || manager.IsClient || manager.IsServer || manager.ShutdownInProgress)
+        {
+            throw new InvalidOperationException("Network session is already running or shutting down.");
+        }
+    }
+    private void PrepareNetworkCallbacks()
+    {
+        if (callbackNetworkManager == NetworkManager.Singleton)
+        {
+            return;
+        }
+
+        UnregisterNetworkCallbacks();
+        callbackNetworkManager = NetworkManager.Singleton;
+    }
+
+    private void UnregisterNetworkCallbacks()
+    {
+        if (callbackNetworkManager != null)
+        {
+            // 只解除本对象的订阅，保留其他系统的回调。
+            callbackNetworkManager.ConnectionApprovalCallback -= NetworkManager_ConnectionApprovalCallback;
+            callbackNetworkManager.OnClientConnectedCallback -= NetworkManager_OnClientConnectedCallback;
+            callbackNetworkManager.OnClientDisconnectCallback -= NetworkManager_Server_OnClientDisconnectCallback;
+            callbackNetworkManager.OnClientConnectedCallback -= NetworkManager_Client_OnClientConnectedCallback;
+            callbackNetworkManager.OnClientDisconnectCallback -= NetworkManager_Client_OnClientDisconnectCallback;
+        }
+        callbackNetworkManager = null;
+    }
+
+    public override void OnDestroy()
+    {
+        UnregisterNetworkCallbacks();
+        base.OnDestroy();
+    }
+
     private void NetworkManager_Client_OnClientDisconnectCallback(ulong clientId)
     {
         OnFailedToJoinGame?.Invoke(this, EventArgs.Empty);

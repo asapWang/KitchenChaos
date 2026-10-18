@@ -1,7 +1,6 @@
 using System;
 using UnityEngine;
 using UnityEngine.UI;
-using Unity.Netcode;
 
 public class GamePauseUI : MonoBehaviour
 {
@@ -12,8 +11,8 @@ public class GamePauseUI : MonoBehaviour
     {
         resumeButton.onClick.AddListener(() => GameManager.Instance.TogglePauseGame());
         mainMenuButton.onClick.AddListener(() => {
+            GameMultiplayer.Instance.ShutdownNetwork();
             Loader.LoadScene(Loader.Scene.MainMenuScene);
-            NetworkManager.Singleton.Shutdown();
         });
         //点击options按钮时，打开options面板，并传入一个事件：当options面板关闭时要调用的事件（这里是重新打开暂停面板）
         optionsButton.onClick.AddListener(() => {

@@ -1,4 +1,3 @@
-using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
@@ -13,7 +12,7 @@ public class CharacterSelectUI : MonoBehaviour
     {
         mainMenuButton.onClick.AddListener(() =>
         {
-            NetworkManager.Singleton.Shutdown();
+            GameMultiplayer.Instance.ShutdownNetwork();
             Loader.LoadScene(Loader.Scene.MainMenuScene);
             GameLobby.Instance.LeaveLobby();
         });

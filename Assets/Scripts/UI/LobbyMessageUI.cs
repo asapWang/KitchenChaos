@@ -26,11 +26,8 @@ public class LobbyMessageUI : MonoBehaviour
     }
     private void GameMultiplayer_OnFailedToJoinGame(object sender, System.EventArgs e)
     {
-        ShowMessage(NetworkManager.Singleton.DisconnectReason.ToString());
-        if(NetworkManager.Singleton.DisconnectReason == null)
-        {
-            messageText.text = "Failed to connect.";
-        }
+        string reason = NetworkManager.Singleton.DisconnectReason;
+        ShowMessage(string.IsNullOrWhiteSpace(reason) ? "Failed to connect." : reason);
     }
     private void GameLobby_OnCreateLobbyStarted(object sender, System.EventArgs e)
     {

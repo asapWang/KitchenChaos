@@ -1,0 +1,10 @@
+{
+    "name": "KitchenChaos.TestSupport",
+    "references": [
+        "Unity.Netcode.Runtime"
+    ],
+    "autoReferenced": false,
+    "optionalUnityReferences": [
+        "TestAssemblies"
+    ]
+}

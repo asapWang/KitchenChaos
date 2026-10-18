@@ -1,5 +1,9 @@
 {
     "name": "KitchenChaos.EditorTests",
+    "references": [
+        "Unity.Netcode.Runtime",
+        "KitchenChaos.TestSupport"
+    ],
     "includePlatforms": [
         "Editor"
     ],
