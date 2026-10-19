@@ -2,7 +2,9 @@
     "name": "KitchenChaos.EditorTests",
     "references": [
         "Unity.Netcode.Runtime",
-        "KitchenChaos.TestSupport"
+        "KitchenChaos.TestSupport",
+        "Unity.Services.Multiplayer",
+        "Unity.Services.Core"
     ],
     "includePlatforms": [
         "Editor"

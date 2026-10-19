@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Reflection;
 using System.Runtime.ExceptionServices;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using NUnit.Framework;
 using Unity.Netcode;
 using UnityEngine;
@@ -344,6 +345,121 @@ namespace KitchenChaos.Tests
             Assert.That(transport.StartCalls, Is.EqualTo(2));
             Assert.That(OwnCallbackCount("OnClientConnectedCallback"), Is.EqualTo(1));
             Assert.That(OwnCallbackCount("OnClientDisconnectCallback"), Is.EqualTo(1));
+        }
+
+        [Test]
+        public async Task AsyncShutdownWaitsForCompletionAndSupportsRepeatedCalls()
+        {
+            transport.StartResult = true;
+            Invoke(multiplayer, "StartClient");
+            Task first = InvokeTask(multiplayer, "ShutdownNetworkAsync");
+            Task second = InvokeTask(multiplayer, "ShutdownNetworkAsync");
+            Assert.That(first.IsCompleted, Is.False);
+            Assert.That(second.IsCompleted, Is.False);
+            Assert.That(((NetworkManager)networkManager).ShutdownInProgress, Is.True);
+
+            Invoke(networkManager, "ShutdownInternal");
+            await Task.WhenAll(first, second);
+
+            Assert.That(((NetworkManager)networkManager).IsClient, Is.False);
+            Assert.That(((NetworkManager)networkManager).ShutdownInProgress, Is.False);
+            Assert.That(OwnCallbackCount("OnClientDisconnectCallback"), Is.Zero);
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public async Task AsyncShutdownCompletesWithoutAnActiveSession(bool missingManager)
+        {
+            if (missingManager) SetStatic(networkManagerType, "Singleton", null);
+            Task task = InvokeTask(multiplayer, "ShutdownNetworkAsync");
+            Assert.That(task.IsCompleted, Is.True);
+            await task;
+        }
+
+        [Test]
+        public async Task AsyncShutdownTimesOutWhilePausedWithoutPretendingItStopped()
+        {
+            float previousTimeScale = Time.timeScale;
+            try
+            {
+                Time.timeScale = 0;
+                // 人为保持一个未清空的状态，不启动实际连接或 NGO 更新循环。
+                SetListening(true);
+                Exception observed = null;
+                try { await InvokeTask(multiplayer, "ShutdownNetworkAsync"); }
+                catch (Exception exception) { observed = exception; }
+                Assert.That(observed, Is.TypeOf<TimeoutException>());
+                Assert.That(((NetworkManager)networkManager).IsListening, Is.True);
+            }
+            finally { Time.timeScale = previousTimeScale; }
+        }
+
+        [Test]
+        public void LoaderReturnsSceneRequestRejectionWithoutLoadingAScene()
+        {
+            transport.StartResult = true;
+            Invoke(multiplayer, "StartClient");
+            Type loaderType = RuntimeType("Loader");
+            object scene = Enum.Parse(loaderType.GetNestedType("Scene"), "CharacterSelectScene");
+            LogAssert.Expect(LogType.Warning, "LoadScene was called, but EnableSceneManagement was not enabled! Enable EnableSceneManagement prior to starting a client, host, or server prior to using NetworkSceneManager!");
+
+            object status = loaderType.GetMethod("LoadNetwork", Members).Invoke(null, new[] { scene });
+
+            Assert.That(status, Is.EqualTo(SceneEventProgressStatus.SceneManagementNotEnabled));
+        }
+
+        private static Task InvokeTask(Component target, string method) =>
+            (Task)target.GetType().GetMethod(method, Members).Invoke(target, null);
+
+        [Test]
+        public void ServerShutdownClearsPreviousPlayersBeforeRetry()
+        {
+            PopulatePreviousRoster();
+            Assert.That(RosterCount(), Is.EqualTo(2));
+
+            Invoke(multiplayer, "ShutdownNetwork");
+
+            Assert.That(RosterCount(), Is.Zero, "停止 Host 后不能保留上一局的玩家记录。");
+            Invoke(networkManager, "ShutdownInternal");
+            transport.StartResult = true;
+            Invoke(multiplayer, "StartClient");
+            object localClient = networkManagerType.GetProperty("LocalClient", Members).GetValue(networkManager);
+            SetProperty(localClient, "IsServer", true);
+            // 模拟重试时 Host 的连接通知，调用真实的名单处理方法。
+            Invoke(multiplayer, "NetworkManager_OnClientConnectedCallback", 0UL);
+            Assert.That(RosterCount(), Is.EqualTo(1));
+            object player = multiplayerType.GetMethod("GetPlayerDataFromIndex", Members).Invoke(multiplayer, new object[] { 0 });
+            Assert.That(player.GetType().GetField("colorID").GetValue(player), Is.EqualTo(0));
+        }
+
+        [Test]
+        public void ClientShutdownDoesNotClearServerOwnedPlayers()
+        {
+            PopulatePreviousRoster();
+            object localClient = networkManagerType.GetProperty("LocalClient", Members).GetValue(networkManager);
+            SetProperty(localClient, "IsServer", false);
+
+            Invoke(multiplayer, "ShutdownNetwork");
+
+            Assert.That(RosterCount(), Is.EqualTo(2), "Client 不能直接清理服务端写权限的名单。");
+        }
+
+        private void PopulatePreviousRoster()
+        {
+            transport.StartResult = true;
+            Invoke(multiplayer, "StartClient");
+            object localClient = networkManagerType.GetProperty("LocalClient", Members).GetValue(networkManager);
+            SetProperty(localClient, "IsServer", true);
+            SetField(multiplayer, "playerColorList", new List<Color> { Color.red, Color.blue });
+            // 本组只模拟服务端角色和连接通知，不创建真实 Host 或网络玩家物体。
+            Invoke(multiplayer, "NetworkManager_OnClientConnectedCallback", 0UL);
+            Invoke(multiplayer, "NetworkManager_OnClientConnectedCallback", 7UL);
+        }
+
+        private int RosterCount()
+        {
+            object roster = multiplayerType.GetField("playerDataNetworkList", Members).GetValue(multiplayer);
+            return (int)roster.GetType().GetProperty("Count").GetValue(roster);
         }
 
         private Delegate[] Callbacks(string name)

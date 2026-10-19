@@ -4,6 +4,7 @@ using UnityEngine.SceneManagement;
 using Unity.Services.Authentication;
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 
 public class GameMultiplayer : NetworkBehaviour
 {
@@ -13,6 +14,7 @@ public class GameMultiplayer : NetworkBehaviour
     //键名，用于playerprefs存储玩家名字
     private const string PLAYER_PREFS_PLAYER_NAME = "PlayerName";
     public const int MAX_PLAYERS_AMOUNT = 4;
+    private const double NETWORK_SHUTDOWN_TIMEOUT_SECONDS = 10d;
     //记录所有客户端的PlayerData数据
     private NetworkList<PlayerData> playerDataNetworkList;
     private string playerName;
@@ -143,8 +145,37 @@ public class GameMultiplayer : NetworkBehaviour
         UnregisterNetworkCallbacks();
         if (manager != null)
         {
+            // 断线回调已退订，由服务端在关闭前清空本次会话的玩家名单。
+            if (manager.IsServer && playerDataNetworkList.Count > 0)
+            {
+                playerDataNetworkList.Clear();
+            }
+
             // NGO 会在后续更新中完成关闭，这里只发起请求。
             manager.Shutdown();
+        }
+    }
+
+    public async Task ShutdownNetworkAsync()
+    {
+        // ShutdownNetwork 会清空订阅引用，等待期间保留实际停止的管理器。
+        NetworkManager manager = callbackNetworkManager != null
+            ? callbackNetworkManager
+            : NetworkManager.Singleton;
+        ShutdownNetwork();
+
+        // 使用实际经过的时间，暂停游戏时也能超时。
+        double deadline = Time.realtimeSinceStartupAsDouble + NETWORK_SHUTDOWN_TIMEOUT_SECONDS;
+        while (manager != null && (manager.IsListening || manager.IsClient ||
+            manager.IsServer || manager.ShutdownInProgress))
+        {
+            if (Time.realtimeSinceStartupAsDouble >= deadline)
+            {
+                throw new TimeoutException("Timed out waiting for the network session to shut down.");
+            }
+
+            // 让出主线程，让 NGO 的后续更新有机会完成关闭。
+            await Task.Yield();
         }
     }
 

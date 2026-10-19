@@ -33,6 +33,7 @@ public class GameLobby : MonoBehaviour
     private float heartbeatTimer=15f;
     private float listLobbyTimer;
     private Task servicesReadyTask;
+    private bool isCreatingLobby;
     private async void Awake()
     {
         Instance = this;
@@ -90,31 +91,13 @@ public class GameLobby : MonoBehaviour
     //创建Relay
     private async Task<Allocation> AllocateRelay()
     {
-        try
-        {
-            Allocation allocation = await RelayService.Instance.CreateAllocationAsync(GameMultiplayer.MAX_PLAYERS_AMOUNT - 1);
-            return allocation;
-        }
-        catch (Exception e)
-        {
-            Debug.LogError(e.Message);
-            return default;
-        }
+        // 失败交给 CreateLobby 统一处理，不能返回 null 后继续创建流程。
+        return await RelayService.Instance.CreateAllocationAsync(GameMultiplayer.MAX_PLAYERS_AMOUNT - 1);
     }
     //获取Relay join code
     private async Task<string> GetRelayJoinCode(Allocation allocation)
     {
-        try
-        {
-            string joinCode = await RelayService.Instance.GetJoinCodeAsync(allocation.AllocationId);
-            return joinCode;
-        }
-        catch (Exception e)
-        {
-            Debug.LogError(e.Message);
-            return default;
-        }
-        
+        return await RelayService.Instance.GetJoinCodeAsync(allocation.AllocationId);
     }
 
     //创建和加入lobby前，先初始化Unity Services并登录
@@ -148,36 +131,123 @@ public class GameLobby : MonoBehaviour
     //创建lobby
     public async void CreateLobby(string lobbyName, bool isPrivate)
     {
-        onCreateLobbyStarted?.Invoke(this, EventArgs.Empty);
+        if (isCreatingLobby || joinedLobby != null)
+        {
+            return;
+        }
+
+        // 在事件通知和第一个 await 之前占用入口，避免重复点击或事件重入。
+        isCreatingLobby = true;
+        try
+        {
+            onCreateLobbyStarted?.Invoke(this, EventArgs.Empty);
+            await CreateLobbyAsync(lobbyName, isPrivate);
+        }
+        catch (System.Exception e)
+        {
+            onCreateLobbyFailed?.Invoke(this, EventArgs.Empty);
+            Debug.LogError(e.Message);
+        }
+        finally
+        {
+            // CreateLobbyAsync 包含失败回滚，等待它结束后才允许再次创建。
+            isCreatingLobby = false;
+        }
+    }
+
+    // 核心流程返回 Task，调用方可以等待它完成并接收异常。
+    private async Task CreateLobbyAsync(string lobbyName, bool isPrivate)
+    {
+        // 记录本次操作创建的资源，失败时不能依赖可能已经变化的 joinedLobby。
+        Lobby createdLobby = null;
+        GameMultiplayer hostToRollback = null;
         try
         {
             await EnsureServicesReadyAsync();
             //API 的设计习惯：必填、最核心的数据用方法参数；可选或会不断扩展的配置放进 Options 对象。
-            joinedLobby = await LobbyService.Instance.CreateLobbyAsync(lobbyName, GameMultiplayer.MAX_PLAYERS_AMOUNT, new CreateLobbyOptions
+            createdLobby = await LobbyService.Instance.CreateLobbyAsync(lobbyName, GameMultiplayer.MAX_PLAYERS_AMOUNT, new CreateLobbyOptions
             {
                 IsPrivate = isPrivate
             });
+            joinedLobby = createdLobby;
             //必须在NGO创建主机前先创建Relay
             Allocation allocation = await AllocateRelay();
             string relayJoinCode = await GetRelayJoinCode(allocation);
             NetworkManager.Singleton.GetComponent<UnityTransport>().SetRelayServerData(AllocationUtils.ToRelayServerData(allocation, "dtls"));
             //把Relay join code存入lobby的Data里，方便客户端加入lobby后获取join code来连接Relay
-            joinedLobby = await LobbyService.Instance.UpdateLobbyAsync(joinedLobby.Id, new UpdateLobbyOptions
+            joinedLobby = await LobbyService.Instance.UpdateLobbyAsync(createdLobby.Id, new UpdateLobbyOptions
             {
                 Data = new Dictionary<string, DataObject>
                 {
                     { KEY_RELAY_JOIN_CODE, new DataObject(DataObject.VisibilityOptions.Member, relayJoinCode) }
                 }
             });
-            GameMultiplayer.Instance.StartHost();
-            Loader.LoadNetwork(Loader.Scene.CharacterSelectScene);
+            NetworkManager manager = NetworkManager.Singleton;
+            GameMultiplayer multiplayer = GameMultiplayer.Instance;
+            // StartHost 内的 RPC 可能在 NGO 启动后抛异常，因此必须提前记录。
+            // 已有会话时不取得清理责任，交给 StartHost 的检查拒绝本次启动。
+            if (manager != null && !manager.IsListening && !manager.IsClient &&
+                !manager.IsServer && !manager.ShutdownInProgress)
+            {
+                hostToRollback = multiplayer;
+            }
+            multiplayer.StartHost();
+            SceneEventProgressStatus loadStatus = Loader.LoadNetwork(Loader.Scene.CharacterSelectScene);
+            if (loadStatus != SceneEventProgressStatus.Started)
+            {
+                throw new InvalidOperationException($"Failed to start loading CharacterSelectScene: {loadStatus}");
+            }
         }
-        catch (System.Exception e)
+        catch
         {
-            onCreateLobbyFailed?.Invoke(this, EventArgs.Empty);
-            Debug.LogError(e.Message);   
+            await RollbackCreationAsync(createdLobby, hostToRollback);
+            throw;
         }
-        
+    }
+
+    private async Task RollbackCreationAsync(Lobby createdLobby, GameMultiplayer hostToRollback)
+    {
+        if (hostToRollback != null)
+        {
+            try
+            {
+                await hostToRollback.ShutdownNetworkAsync();
+            }
+            catch (Exception e)
+            {
+                // NGO 停止失败也不能阻断 Lobby 清理或覆盖原始错误。
+                Debug.LogError($"Failed to stop host during lobby rollback: {e.Message}");
+            }
+        }
+        await RollbackCreatedLobbyAsync(createdLobby);
+    }
+
+    private async Task RollbackCreatedLobbyAsync(Lobby createdLobby)
+    {
+        if (createdLobby == null)
+        {
+            return;
+        }
+
+        // 先解除本地引用，停止对失败房间发起新的心跳；不清空其他操作的房间。
+        if (joinedLobby != null && joinedLobby.Id == createdLobby.Id)
+        {
+            joinedLobby = null;
+        }
+
+        try
+        {
+            await LobbyService.Instance.DeleteLobbyAsync(createdLobby.Id);
+        }
+        catch (LobbyServiceException e) when (e.Reason == LobbyExceptionReason.LobbyNotFound)
+        {
+            // 房间已经不存在，清理目标已达到。
+        }
+        catch (Exception e)
+        {
+            // 清理失败不能覆盖创建流程最初的异常。
+            Debug.LogError($"Failed to clean up lobby {createdLobby.Id}: {e.Message}");
+        }
     }
     //快速加入lobby
     public async void QuickJoinLobby()

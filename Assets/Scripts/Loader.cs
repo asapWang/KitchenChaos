@@ -29,8 +29,8 @@ public static class Loader
         SceneManager.LoadScene(targetScene.ToString());
     }
     //加载网络场景
-    public static void LoadNetwork(Scene scene)
+    public static SceneEventProgressStatus LoadNetwork(Scene scene)
     {
-        NetworkManager.Singleton.SceneManager.LoadScene(scene.ToString(),LoadSceneMode.Single);
+        return NetworkManager.Singleton.SceneManager.LoadScene(scene.ToString(),LoadSceneMode.Single);
     }
 }
