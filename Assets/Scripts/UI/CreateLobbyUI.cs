@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
-public class CreateLobbyUI : MonoBehaviour
+public class CreateLobbyUI : BasePanel
 {
     [SerializeField] private TMP_InputField lobbyNameInputField;
     [SerializeField] private Button createPublicLobbyButton;
@@ -19,22 +19,12 @@ public class CreateLobbyUI : MonoBehaviour
             string lobbyName = lobbyNameInputField.text;
             GameLobby.Instance.CreateLobby(lobbyName, true);
         });
-        backButton.onClick.AddListener(() =>
-        {
-            Hide();
-        });
+        UIManager uiManager = GetComponentInParent<UIManager>();
+        backButton.onClick.AddListener(() => uiManager.HidePanel(nameof(CreateLobbyUI)));
     }
-    private void Start()
+
+    public override void Enter()
     {
-        Hide();
-    }
-    private void Hide()
-    {
-        gameObject.SetActive(false);
-    }
-    public void Show()
-    {
-        gameObject.SetActive(true);
         createPublicLobbyButton.Select();
     }
 }

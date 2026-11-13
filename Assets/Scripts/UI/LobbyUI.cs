@@ -9,7 +9,7 @@ public class LobbyUI : MonoBehaviour
     [SerializeField] private Button quickJoinButton;
     [SerializeField] private Button mainMenuButton;
     [SerializeField] private Button joinByCodeButton;
-    [SerializeField] private CreateLobbyUI createLobbyUI;
+    [SerializeField] private UIManager uiManager;
     [SerializeField] private TMP_InputField lobbyCodeInputField;
     [SerializeField] private TMP_InputField playerNameInputField;
     [SerializeField] private Transform lobbyListContainer;
@@ -18,7 +18,7 @@ public class LobbyUI : MonoBehaviour
     {
         createLobbyButton.onClick.AddListener(() =>
         {
-            createLobbyUI.Show();
+            uiManager.PushPanel(nameof(CreateLobbyUI));
         });
         quickJoinButton.onClick.AddListener(() =>
         {
