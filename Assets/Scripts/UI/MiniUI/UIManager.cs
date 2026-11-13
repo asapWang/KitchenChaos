@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 public class UIManager : MonoBehaviour
 {
@@ -8,9 +9,17 @@ public class UIManager : MonoBehaviour
     [SerializeField] private Canvas midCanvas;
     [SerializeField] private Canvas topCanvas;
     [SerializeField] private Canvas systemCanvas;
+    [SerializeField] private bool enableEscapeBack;
 
     private readonly Dictionary<string, BasePanel> panels =
         new Dictionary<string, BasePanel>(StringComparer.OrdinalIgnoreCase);
+    private readonly Stack<BasePanel> panelStack = new Stack<BasePanel>();
+
+    private void Update()
+    {
+        if (enableEscapeBack && Keyboard.current?.escapeKey.wasPressedThisFrame == true)
+            PopPanel();
+    }
 
     public BasePanel GetPanel(string panelName)
     {
@@ -23,6 +32,31 @@ public class UIManager : MonoBehaviour
 
     public void ShowPanel(string panelName)
     {
+        ShowPanel(panelName, pushToStack: false);
+    }
+
+    public void PushPanel(string panelName)
+    {
+        ShowPanel(panelName, pushToStack: true);
+    }
+
+    public void PopPanel()
+    {
+        if (panelStack.Count == 0)
+            return;
+
+        HidePanel(panelStack.Pop());
+
+        if (panelStack.Count == 0)
+            return;
+
+        BasePanel previousPanel = panelStack.Peek();
+        previousPanel.gameObject.SetActive(true);
+        previousPanel.Resume();
+    }
+
+    private void ShowPanel(string panelName, bool pushToStack)
+    {
         if (string.IsNullOrWhiteSpace(panelName))
         {
             Debug.LogError("面板名称不能为空。", this);
@@ -33,7 +67,22 @@ public class UIManager : MonoBehaviour
         if (panel == null)
             panel = CreatePanel(panelName);
 
-        if (panel == null || panel.gameObject.activeSelf)
+        if (panel == null || panelStack.Contains(panel))
+            return;
+
+        if (pushToStack)
+        {
+            if (panelStack.Count > 0)
+            {
+                BasePanel previousPanel = panelStack.Peek();
+                previousPanel.Pause();
+                previousPanel.gameObject.SetActive(false);
+            }
+
+            panelStack.Push(panel);
+        }
+
+        if (panel.gameObject.activeSelf)
             return;
 
         panel.gameObject.SetActive(true);
@@ -43,6 +92,19 @@ public class UIManager : MonoBehaviour
     public void HidePanel(string panelName)
     {
         BasePanel panel = GetPanel(panelName);
+        if (panel != null && panelStack.Contains(panel))
+        {
+            if (panelStack.Peek() == panel)
+                PopPanel();
+
+            return;
+        }
+
+        HidePanel(panel);
+    }
+
+    private void HidePanel(BasePanel panel)
+    {
         if (panel == null || !panel.gameObject.activeSelf)
             return;
 

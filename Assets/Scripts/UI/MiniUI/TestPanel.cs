@@ -16,6 +16,16 @@ public class TestPanel : BasePanel
         Debug.Log("TestPanel Enter", this);
     }
 
+    public override void Pause()
+    {
+        Debug.Log($"{name} Pause", this);
+    }
+
+    public override void Resume()
+    {
+        Debug.Log($"{name} Resume", this);
+    }
+
     public override void Exit()
     {
         Debug.Log("TestPanel Exit", this);

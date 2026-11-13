@@ -16,5 +16,7 @@ public abstract class BasePanel : MonoBehaviour
 
     public virtual void Init() { }
     public virtual void Enter() { }
+    public virtual void Pause() { }
+    public virtual void Resume() { }
     public virtual void Exit() { }
 }
