@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.InputSystem;
 
 public class UIManager : MonoBehaviour
 {
@@ -9,17 +8,10 @@ public class UIManager : MonoBehaviour
     [SerializeField] private Canvas midCanvas;
     [SerializeField] private Canvas topCanvas;
     [SerializeField] private Canvas systemCanvas;
-    [SerializeField] private bool enableEscapeBack;
 
     private readonly Dictionary<string, BasePanel> panels =
         new Dictionary<string, BasePanel>(StringComparer.OrdinalIgnoreCase);
     private readonly Stack<BasePanel> panelStack = new Stack<BasePanel>();
-
-    private void Update()
-    {
-        if (enableEscapeBack && Keyboard.current?.escapeKey.wasPressedThisFrame == true)
-            PopPanel();
-    }
 
     public BasePanel GetPanel(string panelName)
     {
