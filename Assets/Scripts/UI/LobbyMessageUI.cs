@@ -1,76 +1,24 @@
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
-using Unity.Netcode;
 
-public class LobbyMessageUI : MonoBehaviour
+public class LobbyMessageUI : BasePanel
 {
     [SerializeField] private Button backButton;
     [SerializeField] private TextMeshProUGUI messageText;
     private void Awake()
     {
-        backButton.onClick.AddListener(() =>
-        {
-            Hide();
-        });
+        UIManager uiManager = GetComponentInParent<UIManager>();
+        backButton.onClick.AddListener(() => uiManager.HidePanel(nameof(LobbyMessageUI)));
     }
-    private void Start()
+
+    public override void Enter()
     {
-        GameMultiplayer.Instance.OnFailedToJoinGame += GameMultiplayer_OnFailedToJoinGame;
-        GameLobby.Instance.onCreateLobbyStarted += GameLobby_OnCreateLobbyStarted;
-        GameLobby.Instance.onCreateLobbyFailed += GameLobby_OnCreateLobbyFailed;
-        GameLobby.Instance.onJoinLobbyStarted += GameLobby_OnJoinLobbyStarted;
-        GameLobby.Instance.onJoinLobbyFailed += GameLobby_OnJoinLobbyFailed;
-        GameLobby.Instance.onQuickJoinLobbyFailed += GameLobby_OnQuickJoinLobbyFailed;
-        Hide();
-    }
-    private void GameMultiplayer_OnFailedToJoinGame(object sender, System.EventArgs e)
-    {
-        string reason = NetworkManager.Singleton.DisconnectReason;
-        ShowMessage(string.IsNullOrWhiteSpace(reason) ? "Failed to connect." : reason);
-    }
-    private void GameLobby_OnCreateLobbyStarted(object sender, System.EventArgs e)
-    {
-        ShowMessage("Creating lobby...");
-    }
-    private void GameLobby_OnCreateLobbyFailed(object sender, System.EventArgs e)
-    {
-        ShowMessage("Failed to create lobby.");
-    }
-    private void GameLobby_OnJoinLobbyStarted(object sender, System.EventArgs e)
-    {
-        ShowMessage("Joining lobby...");
-    }
-    private void GameLobby_OnJoinLobbyFailed(object sender, System.EventArgs e)
-    {
-        ShowMessage("Failed to join lobby.");
-    }
-    private void GameLobby_OnQuickJoinLobbyFailed(object sender, System.EventArgs e)
-    {
-        ShowMessage("Failed to quick join lobby.");
-    }
-    private void ShowMessage(string message)
-    {
-        Show();
-        messageText.text = message;
-    }
-    private void Show()
-    {
-        this.gameObject.SetActive(true);
         backButton.Select();
     }
-    private void Hide()
+
+    public void SetMessage(string message)
     {
-        this.gameObject.SetActive(false);
-    }
-    
-    private void OnDestroy()
-    {
-        GameMultiplayer.Instance.OnFailedToJoinGame -= GameMultiplayer_OnFailedToJoinGame;
-        GameLobby.Instance.onCreateLobbyStarted -= GameLobby_OnCreateLobbyStarted;
-        GameLobby.Instance.onCreateLobbyFailed -= GameLobby_OnCreateLobbyFailed;
-        GameLobby.Instance.onJoinLobbyStarted -= GameLobby_OnJoinLobbyStarted;
-        GameLobby.Instance.onJoinLobbyFailed -= GameLobby_OnJoinLobbyFailed;
-        GameLobby.Instance.onQuickJoinLobbyFailed -= GameLobby_OnQuickJoinLobbyFailed;
+        messageText.text = message;
     }
 }

@@ -131,7 +131,7 @@ namespace KitchenChaos.Tests
             SetListening(true);
             Component connecting = AddChild("ConnectingUI", RuntimeType("ConnectingUI"));
             connecting.gameObject.SetActive(false);
-            Component message = CreateMessageUI(out _);
+            Component message = CreateMessageUI(out _, out Component messageController);
             var notifications = new List<string>();
             bool showedConnecting = false;
 
@@ -144,7 +144,7 @@ namespace KitchenChaos.Tests
             EventHandler failed = (sender, args) =>
             {
                 notifications.Add("failed");
-                Invoke(message, "GameMultiplayer_OnFailedToJoinGame", sender, args);
+                Invoke(messageController, "GameMultiplayer_OnFailedToJoinGame", sender, args);
                 Invoke(connecting, "GameMultiplayer_OnFailedToJoinGame", sender, args);
             };
             SetField(multiplayer, "OnTryingToJoinGame", trying);
@@ -489,22 +489,28 @@ namespace KitchenChaos.Tests
             object connectionManager = networkManagerType.GetField("ConnectionManager", Members)
                 .GetValue(networkManager);
             SetField(connectionManager, "m_DisconnectReason", reason);
-            Component message = CreateMessageUI(out Component label);
+            Component message = CreateMessageUI(out Component label, out Component messageController);
 
-            Invoke(message, "GameMultiplayer_OnFailedToJoinGame", multiplayer, EventArgs.Empty);
+            Invoke(messageController, "GameMultiplayer_OnFailedToJoinGame", multiplayer, EventArgs.Empty);
 
             Assert.That(message.gameObject.activeSelf, Is.True);
             Assert.That(GetText(label), Is.EqualTo(expected));
         }
 
-        private Component CreateMessageUI(out Component label)
+        private Component CreateMessageUI(out Component label, out Component controller)
         {
+            controller = root.AddComponent(RuntimeType("LobbyMessageUIController"));
+            Component uiManager = root.GetComponent(RuntimeType("UIManager"));
+            SetField(controller, "uiManager", uiManager);
+
             Component message = AddChild("LobbyMessageUI", RuntimeType("LobbyMessageUI"));
             Component button = AddChild("BackButton", Type.GetType("UnityEngine.UI.Button, UnityEngine.UI", true));
             label = AddChild("MessageText", Type.GetType("TMPro.TextMeshProUGUI, Unity.TextMeshPro", true));
             SetField(message, "backButton", button);
             SetField(message, "messageText", label);
             message.gameObject.SetActive(false);
+            var panels = (System.Collections.IDictionary)uiManager.GetType().GetField("panels", Members).GetValue(uiManager);
+            panels.Add("LobbyMessageUI", message);
             return message;
         }
 
