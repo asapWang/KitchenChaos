@@ -40,6 +40,11 @@ public class UIManager : MonoBehaviour
         ShowPanel(panelName, pushToStack: true);
     }
 
+    public BasePanel PeekPanel()
+    {
+        return panelStack.Count > 0 ? panelStack.Peek() : null;
+    }
+
     public void PopPanel()
     {
         if (panelStack.Count == 0)

@@ -52,7 +52,6 @@ public class GameManager : NetworkBehaviour
     }
     private void Start()
     {
-        InputSystem.Instance.OnPauseAction += InputSystem_OnPauseAction;
         //当玩家按下交互键时，开始游戏
         InputSystem.Instance.OnInteractAction += InputSystem_OnInteractAction;
     }
@@ -250,10 +249,5 @@ public class GameManager : NetworkBehaviour
         }
         isPaused.Value = false;
         return;
-    }
-    private void InputSystem_OnPauseAction(object sender, EventArgs e)
-    {
-        //调用暂停游戏方法
-        TogglePauseGame();
     }
 }

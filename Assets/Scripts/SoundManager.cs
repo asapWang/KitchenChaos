@@ -14,6 +14,11 @@ public class SoundManager : MonoBehaviour
     }
     private void Start()
     {
+        var settings = DataMgr.Instance.SettingsData;
+        AudioMixer mixer = audioMixerGroup.audioMixer;
+        mixer.SetFloat("Music", Mathf.Log10(settings.musicVolume) * 20f);
+        mixer.SetFloat("SFX", Mathf.Log10(settings.sfxVolume) * 20f);
+
         //普通订阅事件：当订单被送达时，播放送达成功的音效；当订单错误时，播放送达失败的音效
         DeliveryManager.Instance.OnDeliverSuccess += DeliveryManager_OnDeliverSuccess;
         DeliveryManager.Instance.OnDeliverFail += DeliveryManager_OnDeliverFail;

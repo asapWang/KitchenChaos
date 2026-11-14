@@ -1,10 +1,9 @@
-using System;
 using TMPro;
 using UnityEngine;
 using UnityEngine.Audio;
 using UnityEngine.UI;
 
-public class OptionsUI : MonoBehaviour
+public class OptionsUI : BasePanel
 {
     //音量相关
     [SerializeField] private Slider musicVolumeSlider;
@@ -39,16 +38,13 @@ public class OptionsUI : MonoBehaviour
     [SerializeField] private Transform pressToRebindKeyTransform;
     //引用audio mixer
     [SerializeField] private AudioMixer audioMixer;
-    //新事件，在此面板show时=暂停面板传来的事件，并在hide时调用
-    private Action onCloseButtonAction;
-    public static OptionsUI Instance { get; private set; }
     private void Awake()
     {
-        Instance = this;
         //监听音量滑动条的值改变事件
         musicVolumeSlider.onValueChanged.AddListener(MusicVolumeSlider_OnValueChanged);
         sfxVolumeSlider.onValueChanged.AddListener(SfxVolumeSlider_OnValueChanged);
-        closeButton.onClick.AddListener(Hide);
+        UIManager uiManager = GetComponentInParent<UIManager>();
+        closeButton.onClick.AddListener(uiManager.PopPanel);
         //监听按键绑定按钮的点击事件
         moveUpButton.onClick.AddListener(() => PressRebindButton(InputSystem.Binding.Move_Up));
         moveDownButton.onClick.AddListener(() => PressRebindButton(InputSystem.Binding.Move_Down));
@@ -61,7 +57,7 @@ public class OptionsUI : MonoBehaviour
         interactAltPadButton.onClick.AddListener(() => PressRebindButton(InputSystem.Binding.Gamepad_Interact_Alternate));
         pausePadButton.onClick.AddListener(() => PressRebindButton(InputSystem.Binding.Gamepad_Pause));
     }
-    public void Start()
+    public override void Init()
     {
         //音量相关
         // 1. 拿到原始数据
@@ -76,16 +72,9 @@ public class OptionsUI : MonoBehaviour
         musicVolumeValueText.text = (savedMusicVol * 100).ToString("F0");
         sfxVolumeValueText.text = (savedSfxVol * 100).ToString("F0");
 
-        // ⭐ 4. 修复核心：手动把读取到的音量，算成分贝，告诉底层的调音台
-        audioMixer.SetFloat("Music", Mathf.Log10(savedMusicVol) * 20f);
-        audioMixer.SetFloat("SFX", Mathf.Log10(savedSfxVol) * 20f);
-
-        //按键相关
-        UpdateVisual();
         //一开始先把提示UI隐藏
         pressToRebindKeyTransform.gameObject.SetActive(false);
-        Hide();
-    } 
+    }
     private void MusicVolumeSlider_OnValueChanged(float value)
     {
         // 使用对数公式计算分贝 (dB)，这才是人耳真实的听觉感受
@@ -132,17 +121,9 @@ public class OptionsUI : MonoBehaviour
             pressToRebindKeyTransform.gameObject.SetActive(false);
         });
     }
-    public void Hide()
+    public override void Enter()
     {
-        gameObject.SetActive(false);
-        onCloseButtonAction?.Invoke();
-    }
-    //重载show方法，接收一个参数：当此面板关闭时要调用的事件（Action）
-    public void Show(Action onCloseButtonAction)
-    {
-        this.onCloseButtonAction = onCloseButtonAction;
-        gameObject.SetActive(true);
-        //高亮一个交互ui，方便玩家手柄和键盘操作
+        UpdateVisual();
         musicVolumeSlider.Select();
     }
 }
